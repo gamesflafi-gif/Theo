@@ -13,10 +13,20 @@ zum Anfassen und Verstehen.
 Theo lernt nur **eine** Aufgabe: „Welches Zeichen kommt als Nächstes?" Wenn ein
 Netz das richtig gut kann, entsteht daraus die Fähigkeit, ganze Texte zu schreiben.
 
+**Echtes Beispiel** von unserem Modell (0,83 Mio. Parameter, auf der CPU
+trainiert, val-loss 1.32) — gestartet mit dem Wort „Charlotte ":
+
 ```
-Eingabe:  "Eduard saß im "
-Theo:     "Eduard saß im Garten und betrachtete die Bäume, ..."
+Charlotte und daß dir Zeit des Gesellschaft hatten will auf
+einen dir einsten Vorhältnisse zu nehmen.
+Als wünschen sollte sich Ottilien ihre Zug, den wir sie sich die Teichen es
+still an der Begriff zu haben.
 ```
+
+Die Grammatik ist noch wackelig (klar, bei einem winzigen Modell auf der CPU) —
+aber das sind **echte, selbst gelernte deutsche Wörter**, und Theo benutzt sogar
+korrekt die Romanfiguren *Charlotte* und *Ottilie*. Weitere Beispiele:
+[`beispiele/erste_texte.md`](beispiele/erste_texte.md).
 
 ## ⚖️ Legal & sauber
 
