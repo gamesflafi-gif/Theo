@@ -1,0 +1,19 @@
+# Caddy-Konfiguration für Theo.
+# {$DOMAIN} und {$ACME_EMAIL} kommen aus den Umgebungsvariablen (docker-compose).
+# Caddy holt und erneuert das HTTPS-Zertifikat (Let's Encrypt) automatisch,
+# sobald die Domain per DNS auf die Server-IP zeigt und Port 80/443 offen sind.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Video-Uploads zulassen (an THEO_MAX_UPLOAD_MB angelehnt).
+	request_body {
+		max_size {$MAX_UPLOAD_MB}MB
+	}
+
+	reverse_proxy theo:8000
+}

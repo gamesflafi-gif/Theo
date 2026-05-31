@@ -1,0 +1,42 @@
+# Theo – Deployment mit automatischem HTTPS (Caddy als Reverse Proxy).
+#
+# Vor dem Start in .env setzen: DOMAIN, ACME_EMAIL (und optional ANTHROPIC_API_KEY).
+# Start:  docker compose up -d --build
+services:
+  theo:
+    build:
+      context: .
+      args:
+        # Auf "true" setzen für den genaueren YOLO-Detektor (mehr RAM/Disk nötig).
+        INSTALL_YOLO: "${INSTALL_YOLO:-false}"
+    restart: unless-stopped
+    environment:
+      THEO_WORKERS: "${THEO_WORKERS:-2}"
+      THEO_MAX_ANALYZE_SECONDS: "${THEO_MAX_ANALYZE_SECONDS:-30}"
+      THEO_MAX_UPLOAD_MB: "${THEO_MAX_UPLOAD_MB:-200}"
+      THEO_DEFAULT_DETECTOR: "${THEO_DEFAULT_DETECTOR:-hog}"
+      # Optional: aktiviert das Claude-RAG-Backend, wenn gesetzt.
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - theo
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: "${DOMAIN}"
+      ACME_EMAIL: "${ACME_EMAIL}"
+      MAX_UPLOAD_MB: "${THEO_MAX_UPLOAD_MB:-200}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

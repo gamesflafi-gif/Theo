@@ -9,6 +9,7 @@ Starten:
 
 from __future__ import annotations
 
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -29,8 +30,29 @@ _STATIC_DIR = Path(__file__).parent / "static"
 
 # Erlaubte Video-Endungen für den Upload.
 _ALLOWED_SUFFIXES = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
-# Obergrenze für die analysierte Videolänge (Sekunden), um Laufzeit zu begrenzen.
-_MAX_ANALYZE_SECONDS = 30.0
+# Obergrenze für die analysierte Videolänge (Sekunden) – per Env konfigurierbar.
+_MAX_ANALYZE_SECONDS = float(os.environ.get("THEO_MAX_ANALYZE_SECONDS", "30"))
+# Maximale Upload-Größe in MB (Schutz vor zu großen Dateien).
+_MAX_UPLOAD_MB = float(os.environ.get("THEO_MAX_UPLOAD_MB", "200"))
+# Standard-Detektor für die Weboberfläche (hog | yolo).
+_DEFAULT_DETECTOR = os.environ.get("THEO_DEFAULT_DETECTOR", "hog")
+
+
+def _save_upload_limited(src, dest: Path, max_bytes: int) -> None:
+    """Schreibt einen Upload streamend und bricht bei Überschreitung des Limits ab."""
+    written = 0
+    with dest.open("wb") as out:
+        while True:
+            chunk = src.read(1024 * 1024)
+            if not chunk:
+                break
+            written += len(chunk)
+            if written > max_bytes:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Video zu groß (Limit {_MAX_UPLOAD_MB:.0f} MB).",
+                )
+            out.write(chunk)
 
 
 def create_app() -> "FastAPI":
@@ -78,7 +100,7 @@ def create_app() -> "FastAPI":
     @app.post("/api/analyze")
     def analyze(
         file: UploadFile = File(...),
-        detector: str = Form("hog"),
+        detector: str = Form(_DEFAULT_DETECTOR),
         detect: bool = Form(True),
     ) -> JSONResponse:
         suffix = Path(file.filename or "").suffix.lower()
@@ -91,9 +113,7 @@ def create_app() -> "FastAPI":
         tmp_dir = Path(tempfile.mkdtemp(prefix="theo_upload_"))
         tmp_path = tmp_dir / f"upload{suffix}"
         try:
-            with tmp_path.open("wb") as out:
-                shutil.copyfileobj(file.file, out)
-
+            _save_upload_limited(file.file, tmp_path, int(_MAX_UPLOAD_MB * 1024 * 1024))
             payload = _run_analysis(tmp_path, detector=detector, detect=detect)
             return JSONResponse(payload)
         finally:

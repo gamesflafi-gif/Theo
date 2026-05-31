@@ -75,3 +75,15 @@ def test_index_links_pwa(client):
     html = client.get("/").text
     assert 'rel="manifest"' in html
     assert "/sw.js" in html
+
+
+def test_upload_too_large_rejected(client, monkeypatch):
+    # Upload-Limit künstlich klein setzen und ein größeres "Video" senden.
+    import importlib
+
+    appmod = importlib.import_module("theo.web.app")
+    monkeypatch.setattr(appmod, "_MAX_UPLOAD_MB", 0.001)  # ~1 KB
+    big = io.BytesIO(b"x" * 50_000)
+    files = {"file": ("clip.mp4", big, "video/mp4")}
+    r = client.post("/api/analyze", files=files, data={"detect": "false"})
+    assert r.status_code == 413

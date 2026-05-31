@@ -19,6 +19,11 @@ env/
 .coverage
 htmlcov/
 
+# Deployment-Secrets / Laufzeitdaten
+.env
+caddy_data/
+caddy_config/
+
 # IDE / OS
 .vscode/
 .idea/
