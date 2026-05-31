@@ -78,6 +78,18 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+    except ImportError:
+        print("Fehler: Das Web-Backend benötigt `pip install theo[web]`.",
+              file=sys.stderr)
+        return 1
+    print(f"Theo-Weboberfläche läuft auf http://{args.host}:{args.port}")
+    uvicorn.run("theo.web.app:app", host=args.host, port=args.port, reload=args.reload)
+    return 0
+
+
 def cmd_topics(_args: argparse.Namespace) -> int:
     from theo.knowledge import load_sections
 
@@ -131,6 +143,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_top = sub.add_parser("topics", help="Inhalt der Wissensbasis auflisten.")
     p_top.set_defaults(func=cmd_topics)
+
+    p_srv = sub.add_parser("serve", help="Weboberfläche starten (Q&A + Upload).")
+    p_srv.add_argument("--host", default="127.0.0.1", help="Host-Adresse.")
+    p_srv.add_argument("--port", type=int, default=8000, help="Port.")
+    p_srv.add_argument("--reload", action="store_true", help="Auto-Reload (Dev).")
+    p_srv.set_defaults(func=cmd_serve)
 
     return parser
 

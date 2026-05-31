@@ -16,9 +16,11 @@ llm = ["anthropic>=0.40"]
 video = ["opencv-python-headless>=4.9", "numpy>=1.24"]
 # Genauere Detektion (Spieler + Ball) via Ultralytics YOLO (zieht PyTorch).
 video-yolo = ["theo[video]", "ultralytics>=8.1"]
+# Web-Oberfläche (Q&A + Video-Upload).
+web = ["theo[video]", "fastapi>=0.110", "uvicorn[standard]>=0.27", "python-multipart>=0.0.9"]
 # Entwicklung / Tests.
-dev = ["pytest>=8.0"]
-all = ["theo[llm,video,dev]"]
+dev = ["pytest>=8.0", "httpx>=0.27"]
+all = ["theo[llm,video,web,dev]"]
 
 [project.scripts]
 theo = "theo.cli:main"
