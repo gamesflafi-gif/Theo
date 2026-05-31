@@ -3,8 +3,9 @@
 **Theo** ist eine KI rund um American Football. Das Ziel: eine Anwendung, die
 
 1. **alle Football-Fragen beantwortet** – Regeln, Positionen/Rollen, Spielzüge,
-   Strafen, Begriffe – aus einer kuratierten Wissensbasis, optional verfeinert
-   über die Claude API (RAG), und
+   Strafen, Begriffe, **Legenden/Spieler, Trophäen** – aus einer kuratierten
+   Wissensbasis (versteht auch Abkürzungen wie TD, INT, QB, OC, RPO), optional
+   verfeinert über die Claude API (RAG), und
 2. **Spiel- und Trainingsvideos analysiert** – von Basis-Bewegungsanalyse bis hin
    zu Spieler-Tracking und Spielzug-Erkennung.
 
@@ -100,9 +101,11 @@ weiterhin den laufenden Server.
 
 Im Bereich **„Spielzug-Simulator"** der Web-App lässt sich ein Offense-Play gegen
 ein Defense-Play antreten:
-- Offense- und Defense-Spielzug aus der Bibliothek wählen (z. B. *Four Verticals*
-  vs. *Cover 2*) oder über „Routen anpassen" einen **eigenen Spielzug** bauen
-  und im **Playbook** (Browser) speichern.
+- Offense- (Slant-Flat, Four Verticals, Mesh, Smash, Flood, Stick, Dagger,
+  HB-Screen, PA-Post, Inside/Outside Zone) gegen Defense-Spielzug
+  (Cover 1/2/3/4, diverse Blitzes, Cover 0 All-Out-Blitz) wählen – oder über
+  „Routen anpassen" einen **eigenen Spielzug** bauen und im **Playbook**
+  (Browser) speichern.
 - **▶ Simulieren** zeigt den Verlauf als Animation auf dem Feld (Offense blau,
   Defense rot, Ball) samt Ausgang (komplett/inkomplett/Sack/INT/Lauf, Yards).
 - **📊 100×** rechnet eine **Ausgangsverteilung** (Ø Yards, beste/schlechteste,
