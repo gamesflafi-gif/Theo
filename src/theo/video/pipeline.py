@@ -137,12 +137,16 @@ class VideoPipeline:
         sampled = 0
 
         while True:
-            ok, frame = cap.read()
-            if not ok:
-                break
             if max_frames is not None and idx >= max_frames:
                 break
+            # grab() schiebt nur vor (kein Dekodieren); retrieve() dekodiert
+            # ausschließlich die tatsächlich gesampelten Frames -> schneller.
+            if not cap.grab():
+                break
             if idx % stride == 0:
+                ok, frame = cap.retrieve()
+                if not ok:
+                    break
                 t = idx / fps
                 # Bewegungsanalyse (Frame-Differenz auf Mini-Graustufenbild).
                 small = cv2.cvtColor(cv2.resize(frame, (64, 36)), cv2.COLOR_BGR2GRAY)

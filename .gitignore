@@ -29,5 +29,7 @@ htmlcov/
 *.mov
 *.avi
 *.mkv
+*.pt
+*.onnx
 models/
 data/uploads/

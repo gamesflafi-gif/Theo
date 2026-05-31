@@ -139,10 +139,13 @@ class VideoAnalyzer:
         idx = 0
 
         while True:
-            ok, frame = cap.read()
-            if not ok:
+            # Nur gesampelte Frames dekodieren (grab überspringt, retrieve liest).
+            if not cap.grab():
                 break
             if idx % stride == 0:
+                ok, frame = cap.retrieve()
+                if not ok:
+                    break
                 small = cv2.cvtColor(
                     cv2.resize(frame, (64, 36)), cv2.COLOR_BGR2GRAY
                 )
