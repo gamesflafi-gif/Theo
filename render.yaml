@@ -1,0 +1,25 @@
+# Render.com Blueprint – Theo als kostenlose Web-App deployen.
+# Deploy: https://render.com/deploy?repo=https://github.com/gamesflafi-gif/Theo
+services:
+  - type: web
+    name: theo
+    runtime: python
+    plan: free
+    # Schlank halten (Q&A + Simulator + Video-HOG + optional Claude). YOLO zu groß.
+    buildCommand: "pip install -e '.[web,llm]'"
+    startCommand: "uvicorn theo.web.app:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      # Free-Tier-Limits (Speicher/Zeit) konservativ halten.
+      - key: THEO_MAX_UPLOAD_MB
+        value: "40"
+      - key: THEO_MAX_ANALYZE_SECONDS
+        value: "12"
+      - key: THEO_DEFAULT_DETECTOR
+        value: "hog"
+      # Optional für ausformulierte Antworten: in Render als Secret setzen.
+      # - key: ANTHROPIC_API_KEY
+      #   sync: false
