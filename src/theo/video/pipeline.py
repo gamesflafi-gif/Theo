@@ -74,6 +74,10 @@ class PipelineResult:
             f"Verfolgte Objekte (Tracks): {len(self.tracks)}",
             f"Aktive Phasen (Bewegung): {len(self.active_segments)}",
         ]
+        for i, seg in enumerate(self.active_segments[:6], 1):
+            lines.append(
+                f"  Phase {i}: {seg.start_s:.1f}s–{seg.end_s:.1f}s "
+                f"(Dauer {seg.duration_s:.1f}s)")
         if self.formation:
             f = self.formation
             lines += [

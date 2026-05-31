@@ -255,6 +255,8 @@ def _run_analysis(path: Path, *, detector: str, detect: bool) -> dict:
             "avg_players": round(result.avg_players, 1),
             "max_players": result.max_players,
             "active_segments": len(result.active_segments),
+            "segments": [{"start": round(s.start_s, 1), "end": round(s.end_s, 1)}
+                         for s in result.active_segments[:6]],
             "keyframes": [
                 {"label": kf.label, "time_s": round(kf.time_s, 1),
                  "image": kf.to_data_url()}
