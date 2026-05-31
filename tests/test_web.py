@@ -19,6 +19,10 @@ def test_index_served(client):
     assert r.status_code == 200
     assert "Theo" in r.text
     assert "Video analysieren" in r.text
+    assert "Spielzug-Simulator" in r.text
+    # Navigation & Schnellstart-Fragen vorhanden.
+    assert 'href="#sim"' in r.text
+    assert 'id="examples"' in r.text
 
 
 def test_health(client):

@@ -280,14 +280,21 @@ _INDEX_HTML = """<!DOCTYPE html>
   <button id="installBtn" style="display:none;background:#1f8a4c" onclick="installApp()">
     📲 Als App installieren</button>
 
-  <div class="card">
+  <nav style="margin:.6rem 0;display:flex;gap:.5rem;flex-wrap:wrap">
+    <a href="#ask" style="color:#9db4e8;text-decoration:none;background:#181b22;padding:.35rem .7rem;border-radius:999px;border:1px solid #262a33">💬 Fragen</a>
+    <a href="#video" style="color:#9db4e8;text-decoration:none;background:#181b22;padding:.35rem .7rem;border-radius:999px;border:1px solid #262a33">🎬 Video</a>
+    <a href="#sim" style="color:#9db4e8;text-decoration:none;background:#181b22;padding:.35rem .7rem;border-radius:999px;border:1px solid #262a33">🏈 Simulator</a>
+  </nav>
+
+  <div class="card" id="ask">
     <h2>Frage stellen</h2>
     <textarea id="q" rows="2" placeholder="z. B. Was macht der Quarterback?"></textarea>
     <button id="askBtn" onclick="ask()">Fragen</button>
+    <div id="examples" style="margin-top:.5rem;display:flex;gap:.35rem;flex-wrap:wrap"></div>
     <div id="answer"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="video">
     <h2>Video analysieren</h2>
     <input type="file" id="file" accept="video/*">
     <div style="margin:.5rem 0">
@@ -304,7 +311,7 @@ _INDEX_HTML = """<!DOCTYPE html>
     <div id="analysis"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="sim">
     <h2>Spielzug-Simulator</h2>
     <p class="muted">Offense-Play gegen Defense-Play antreten lassen, den Verlauf
     ansehen und mögliche Ausgänge berechnen. (Vereinfachtes Modell.)</p>
@@ -334,6 +341,27 @@ _INDEX_HTML = """<!DOCTYPE html>
   </div>
 
 <script>
+const EXAMPLE_QS = [
+  'Was macht der Quarterback?',
+  'Wie viele Punkte gibt ein Touchdown?',
+  'Was ist ein Blitz?',
+  'Welche Teams sind in der AFC West?',
+  'Was ist die GFL?',
+  'Erkläre Cover 2.',
+];
+function renderExamples() {
+  const el = document.getElementById('examples');
+  if (!el) return;
+  el.innerHTML = EXAMPLE_QS.map(q =>
+    '<button type="button" style="background:#222733;font-size:.8rem;margin:0" ' +
+    'onclick="askExample(this.dataset.q)" data-q="' + q.replace(/"/g, '&quot;') + '">' +
+    escapeHtml(q) + '</button>').join('');
+}
+function askExample(q) {
+  document.getElementById('q').value = q;
+  ask();
+  document.getElementById('ask').scrollIntoView({ behavior: 'smooth' });
+}
 async function ask() {
   const q = document.getElementById('q').value.trim();
   const out = document.getElementById('answer');
@@ -539,7 +567,7 @@ function renderPlaybook() {
     '<a href="#" onclick="deletePlay(\\'' + p.name.replace(/'/g, "") + '\\');return false" style="color:#e06">✕</a></span>').join('');
 }
 
-window.addEventListener('load', loadPlays);
+window.addEventListener('load', () => { renderExamples(); loadPlays(); });
 
 // PWA: Service Worker registrieren.
 if ('serviceWorker' in navigator) {
