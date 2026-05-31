@@ -1,0 +1,30 @@
+# Glossar: Wichtige Begriffe
+
+- **Audible:** Vom QB an der Line geänderter Spielzug.
+- **Backfield:** Bereich hinter der Line of Scrimmage, wo QB und RBs stehen.
+- **Blitz:** Pass Rush mit zusätzlichen Spielern (LB/DB).
+- **Bootleg:** QB läuft nach dem Snap zur Seite weg vom Laufspiel.
+- **Coverage:** Art der Passverteidigung (Mann oder Zone).
+- **Down:** Ein Versuch der Offense; es gibt vier pro Serie.
+- **Drive:** Eine zusammenhängende Angriffsserie eines Teams.
+- **End Zone:** 10 Yards tiefe Zone an jedem Feldende – dort fällt der Touchdown.
+- **Fumble:** Verlorener Ball durch einen Ballträger.
+- **Hand-off:** Übergabe des Balls vom QB an einen RB.
+- **Hash Marks:** Markierungen in Feldmitte, an denen Spielzüge starten.
+- **Huddle:** Besprechung der Offense/Defense vor dem Spielzug.
+- **Interception (INT):** Abgefangener Pass durch die Defense.
+- **Line of Scrimmage (LOS):** Gedachte Linie, an der der Spielzug beginnt.
+- **Man / Zone:** Deckung gegen Spieler bzw. gegen Raumzonen.
+- **Pick Six:** Interception, die direkt zum Touchdown zurückgetragen wird.
+- **Play Action:** Vorgetäuschter Lauf, um dann zu passen.
+- **Pocket:** Schutzraum, den die O-Line um den werfenden QB bildet.
+- **Pre-Snap:** Phase vor dem Snap (Aufstellung, Reads, Motion).
+- **Red Zone:** Bereich innerhalb der gegnerischen 20-Yard-Linie.
+- **Route:** Vorgegebener Laufweg eines Receivers.
+- **Sack:** QB wird hinter der Line of Scrimmage getackelt, bevor er wirft.
+- **Snap:** Beginn des Spielzugs – der Center spielt den Ball nach hinten.
+- **Special Teams:** Einheiten für Kicks und Returns.
+- **Tackle:** Den Ballträger zu Boden bringen / stoppen.
+- **Touchback:** Ball geht tot in/aus der Endzone; Start von fester Yard-Linie.
+- **Turnover:** Ballverlust durch Interception oder Fumble.
+- **Yards After Catch (YAC):** Raumgewinn nach dem Fangen eines Passes.

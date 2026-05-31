@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+*.egg
+
+# Virtuelle Umgebungen
+.venv/
+venv/
+env/
+
+# Tests / Tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Daten / Modelle / Videos (nicht versionieren)
+*.mp4
+*.mov
+*.avi
+*.mkv
+models/
+data/uploads/

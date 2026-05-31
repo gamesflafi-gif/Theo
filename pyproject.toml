@@ -1,0 +1,35 @@
+[project]
+name = "theo"
+version = "0.1.0"
+description = "Theo – eine KI rund um American Football: Fragen beantworten und Spiel-/Trainingsvideos analysieren."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Theo" }]
+dependencies = []
+
+# Optionale Extras – nur installieren, was gebraucht wird.
+[project.optional-dependencies]
+# RAG-Antworten über die Claude API (Nutzer stellt ANTHROPIC_API_KEY bereit).
+llm = ["anthropic>=0.40"]
+# Video-Analyse (Stufe 2): Computer Vision.
+video = ["opencv-python-headless>=4.9", "numpy>=1.24"]
+# Entwicklung / Tests.
+dev = ["pytest>=8.0"]
+all = ["theo[llm,video,dev]"]
+
+[project.scripts]
+theo = "theo.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"theo.knowledge" = ["data/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
