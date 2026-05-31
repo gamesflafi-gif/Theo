@@ -307,12 +307,47 @@ _INDEX_HTML = """<!DOCTYPE html>
         padding: .8rem; border-radius: 8px; border: 1px solid #262a33; }
   .muted { color: #8a90a0; font-size: .85rem; }
   .src { color: #8a90a0; font-size: .8rem; margin-top: .4rem; }
+
+  /* --- Polierter Look (überschreibt Basis) --- */
+  body { max-width: 820px; background:
+         radial-gradient(1200px 600px at 50% -10%, #16203a 0%, #0d0f14 55%) fixed;
+         line-height: 1.5; padding-bottom: 3rem; }
+  .hero { text-align: center; padding: 1.4rem 0 .4rem; }
+  .hero h1 { font-size: 2.1rem; margin: 0;
+             background: linear-gradient(90deg,#7aa2ff,#9b7bff,#56c596);
+             -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: .35rem 0 0; }
+  nav { position: sticky; top: 0; z-index: 5; padding: .5rem 0;
+        backdrop-filter: blur(8px); background: rgba(13,15,20,.7);
+        justify-content: center; }
+  nav a { transition: .15s; font-size: .9rem; }
+  nav a:hover { background:#222a3a !important; color:#cfe0ff !important; }
+  .card { border-radius: 16px; padding: 1.1rem 1.3rem;
+          box-shadow: 0 6px 24px rgba(0,0,0,.25);
+          background: linear-gradient(180deg,#1a1e27,#15181f); }
+  .card h2 { display:flex; align-items:center; gap:.5rem; }
+  button { background: linear-gradient(180deg,#3b7bff,#2a5fe0); font-weight:600;
+           box-shadow: 0 2px 8px rgba(40,90,220,.3); transition: transform .08s, filter .15s; }
+  button:hover { filter: brightness(1.08); }
+  button:active { transform: translateY(1px); }
+  select { padding:.45rem; border-radius:8px; background:#0f1115; color:#e8e8e8;
+           border:1px solid #333; }
+  a { color:#8ab4ff; }
+  /* Ergebnis-Badges */
+  .badge { display:inline-block; padding:.15rem .6rem; border-radius:999px;
+           font-size:.8rem; font-weight:600; }
+  .badge.ok { background:#16442a; color:#7be0a3; }
+  .badge.bad { background:#4a1f24; color:#ff9aa6; }
+  table { font-size:.9rem; }
+  @media (max-width:600px){ .hero h1{font-size:1.7rem} .card{padding:.9rem 1rem} }
 </style>
 </head>
 <body>
-  <h1>🏈 Theo – die Football-KI</h1>
-  <p class="muted">Stelle Fragen rund um American Football oder lade ein Spiel-/
-  Trainingsvideo zur Analyse hoch.</p>
+  <div class="hero">
+    <h1>🏈 Theo</h1>
+    <p class="muted">Deine KI rund um American Football – fragen, Videos
+    analysieren, Spielzüge simulieren.</p>
+  </div>
   <button id="installBtn" style="display:none;background:#1f8a4c" onclick="installApp()">
     📲 Als App installieren</button>
 
