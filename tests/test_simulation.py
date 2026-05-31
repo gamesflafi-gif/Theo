@@ -3,6 +3,8 @@ from theo.simulation import (
     OFFENSE_LIBRARY,
     Simulator,
     make_offense_play,
+    rank_defenses,
+    rank_offenses,
     simulate_play,
 )
 
@@ -65,3 +67,23 @@ def test_custom_play_roundtrip():
     res = simulate_play(custom, DEFENSE_LIBRARY["cover3_zone"], seed=1)
     assert res.outcome in VALID
     assert custom.routes["WR_L"] == "post"
+
+
+def test_cover4_runs():
+    res = simulate_play(OFFENSE_LIBRARY["four_verticals"],
+                        DEFENSE_LIBRARY["cover4_quarters"], seed=1)
+    assert res.outcome in VALID
+
+
+def test_rank_defenses_sorted_ascending():
+    rows = rank_defenses(OFFENSE_LIBRARY["four_verticals"], n=40)
+    assert len(rows) == len(DEFENSE_LIBRARY)
+    ys = [r["mean_yards"] for r in rows]
+    assert ys == sorted(ys)  # beste (wenigste Yards) zuerst
+
+
+def test_rank_offenses_sorted_descending():
+    rows = rank_offenses(DEFENSE_LIBRARY["cover2_zone"], n=40)
+    assert len(rows) == len(OFFENSE_LIBRARY)
+    ys = [r["mean_yards"] for r in rows]
+    assert ys == sorted(ys, reverse=True)

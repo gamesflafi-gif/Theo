@@ -140,6 +140,17 @@ class Simulator:
             if deff.blitz:
                 players["LB2"].behavior = "rush"
                 rushers.append("LB2")
+        elif cov == "cover4":
+            zones = {"CB_L": (9.0, 17.0), "S_L": (19.0, 18.0),
+                     "S_R": (35.0, 18.0), "CB_R": (44.0, 17.0),
+                     "LB1": (15.0, 8.0), "LB2": (FIELD_CENTER, 9.0),
+                     "LB3": (39.0, 8.0)}
+            for did, lm in zones.items():
+                players[did].behavior = "zone"
+                players[did].landmark = lm
+            if deff.blitz:
+                players["LB2"].behavior = "rush"
+                rushers.append("LB2")
         else:  # cover3
             zones = {"CB_L": (9.0, 18.0), "CB_R": (44.0, 18.0),
                      "S_L": (FIELD_CENTER, 19.0), "S_R": (38.0, 8.0),
@@ -178,10 +189,13 @@ class Simulator:
             if reached:
                 p.wp += 1
         else:
-            # Nach der letzten Marke in Richtung der letzten Bewegung weiterlaufen.
-            n = math.hypot(p.vx, p.vy) or 1.0
-            p.x += (p.vx / n) * step
-            p.y += (p.vy / n) * step
+            # Nach der letzten Marke: vorwärts laufende Routen driften langsam
+            # weiter; zurückkommende Routen (Hitch/Curl/Comeback) bleiben im
+            # Fenster stehen.
+            if p.vy >= 0:
+                n = math.hypot(p.vx, p.vy) or 1.0
+                p.x += (p.vx / n) * step
+                p.y += (p.vy / n) * step
 
     def _step_defense(self, players, t, ball_thrown, ball_pos):
         for s in DEFENSE_SLOTS:
@@ -198,10 +212,19 @@ class Simulator:
                     p.x, p.y, _ = _move_toward(p.x, p.y, tgt.x, tgt.y, step)
             elif b in ("zone", "spy"):
                 lx, ly = p.landmark
-                if ball_thrown and ball_pos is not None:
+                if ball_thrown and ball_pos is not None and \
+                        _dist(p.x, p.y, ball_pos[0], ball_pos[1]) < 13.0:
                     # Auf den Ball/Catch-Punkt brechen, wenn nah genug.
-                    if _dist(p.x, p.y, ball_pos[0], ball_pos[1]) < 13.0:
-                        lx, ly = ball_pos
+                    lx, ly = ball_pos
+                elif ly >= 14.0:
+                    # Tiefe Zone: einen vertikal laufenden Receiver mitnehmen.
+                    deep = [players[o.id] for o in OFFENSE_SLOTS
+                            if o.id != "QB" and abs(players[o.id].x - lx) < 9.0
+                            and players[o.id].y > 6.0]
+                    if deep:
+                        tgt = min(deep, key=lambda r: abs(r.x - lx))
+                        lx = (tgt.x + lx) / 2.0
+                        ly = max(ly, tgt.y - 1.5)   # Leverage oben halten
                 p.x, p.y, _ = _move_toward(p.x, p.y, lx, ly, step)
 
     # -- Hauptsimulation -----------------------------------------------------
@@ -291,7 +314,9 @@ class Simulator:
         caught = False
         while air_ticks < max_air:
             self._step_offense(players, t)
-            self._step_defense(players, t, True, (ball_x, ball_y))
+            # Verteidiger brechen auf den Catch-Punkt (Receiver), nicht auf die
+            # aktuelle Ballposition (die anfangs noch hinten beim QB liegt).
+            self._step_defense(players, t, True, (receiver.x, receiver.y))
             # Ball Richtung aktueller Receiver-Position (Homing -> Vorhalten).
             ball_x, ball_y, reached = _move_toward(
                 ball_x, ball_y, receiver.x, receiver.y, BALL_SPEED * self.dt)

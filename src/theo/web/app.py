@@ -22,6 +22,8 @@ from theo.simulation import (
     ROUTE_NAMES,
     Simulator,
     make_offense_play,
+    rank_defenses,
+    rank_offenses,
 )
 
 try:
@@ -43,6 +45,15 @@ class SimRequest(BaseModel):
     kind: str = "pass"
     seed: int = 0
     n: int = 100
+
+
+class AdvisorRequest(BaseModel):
+    mode: str = "best_defense"      # best_defense | best_offense
+    offense_id: str | None = None
+    defense_id: str = "cover2_zone"
+    routes: dict[str, str] | None = None
+    kind: str = "pass"
+    n: int = 60
 
 
 def _resolve_plays(req: "SimRequest"):
@@ -128,6 +139,25 @@ def create_app() -> "FastAPI":
         n = max(1, min(500, req.n))
         return Simulator().simulate_many(
             off, deff, n=n, base_seed=req.seed).to_dict()
+
+    @app.post("/api/advisor")
+    def advisor(req: AdvisorRequest) -> dict:
+        n = max(10, min(200, req.n))
+        if req.mode == "best_offense":
+            deff = DEFENSE_LIBRARY.get(req.defense_id)
+            if deff is None:
+                raise HTTPException(status_code=400, detail="Unbekannte Defense.")
+            return {"mode": "best_offense", "vs": deff.name,
+                    "rows": rank_offenses(deff, n=n)}
+        # best_defense (Standard): Offense auflösen.
+        if req.routes:
+            off = make_offense_play(req.routes, kind=req.kind)
+        elif req.offense_id in OFFENSE_LIBRARY:
+            off = OFFENSE_LIBRARY[req.offense_id]
+        else:
+            raise HTTPException(status_code=400, detail="Unbekannte Offense.")
+        return {"mode": "best_defense", "vs": off.name,
+                "rows": rank_defenses(off, n=n)}
 
     @app.get("/api/health")
     def health() -> dict:
@@ -283,12 +313,20 @@ _INDEX_HTML = """<!DOCTYPE html>
       <label class="muted">Defense<br><select id="defSel"></select></label>
     </div>
     <details style="margin:.6rem 0">
-      <summary class="muted" style="cursor:pointer">Routen anpassen (eigener Spielzug)</summary>
+      <summary class="muted" style="cursor:pointer">Routen anpassen & eigenen Spielzug speichern</summary>
       <div id="routeEditor" style="margin-top:.5rem"></div>
+      <div style="margin-top:.4rem">
+        <input type="text" id="playName" placeholder="Name für eigenen Spielzug"
+               style="max-width:220px;display:inline-block;width:auto">
+        <button style="background:#1f8a4c" onclick="savePlay()">💾 Speichern</button>
+      </div>
+      <div id="playbook" class="src" style="margin-top:.4rem"></div>
     </details>
     <div>
       <button onclick="simulateOne()">▶ Simulieren</button>
-      <button style="background:#6b46c1" onclick="simulateBatch()">📊 100× simulieren</button>
+      <button style="background:#6b46c1" onclick="simulateBatch()">📊 100×</button>
+      <button style="background:#b45309" onclick="advise('best_defense')">🧠 Beste Defense</button>
+      <button style="background:#b45309" onclick="advise('best_offense')">🧠 Beste Offense</button>
     </div>
     <canvas id="field" width="320" height="470"
       style="width:100%;max-width:340px;display:block;background:#14401f;border-radius:8px;margin-top:.6rem;border:1px solid #262a33"></canvas>
@@ -358,6 +396,7 @@ async function loadPlays() {
   off.innerHTML = PLAYS.offense.map(p => '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>').join('');
   def.innerHTML = PLAYS.defense.map(p => '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>').join('');
   off.onchange = fillRoutes; fillRoutes();
+  renderPlaybook();
   drawField();
 }
 function curOffense() { return PLAYS.offense.find(p => p.id === document.getElementById('offSel').value); }
@@ -451,6 +490,55 @@ async function simulateBatch() {
     out.innerHTML = html;
   } catch (e) { out.innerHTML = '<p style="color:#e06">' + escapeHtml(e.message) + '</p>'; }
 }
+async function advise(mode) {
+  const out = document.getElementById('simOut');
+  out.innerHTML = '<p class="muted">Berechne Matchups…</p>';
+  try {
+    const d = await postJSON('/api/advisor', curRequest({ mode: mode, n: 60 }));
+    const title = mode === 'best_defense'
+      ? 'Beste Defense gegen ' + escapeHtml(d.vs) + ' (wenigste Yards zuerst):'
+      : 'Beste Offense gegen ' + escapeHtml(d.vs) + ' (meiste Yards zuerst):';
+    let html = '<p class="muted">' + title + '</p><table style="width:100%;border-collapse:collapse">';
+    html += '<tr class="src"><th align="left">Spielzug</th><th>Ø Yd</th><th>Compl</th><th>Sack</th></tr>';
+    d.rows.forEach((r, i) => {
+      const compl = r.outcome_pct.complete || 0, sack = r.outcome_pct.sack || 0;
+      html += '<tr style="border-top:1px solid #262a33">' +
+        '<td>' + (i === 0 ? '⭐ ' : '') + escapeHtml(r.name) + '</td>' +
+        '<td align="center">' + r.mean_yards + '</td>' +
+        '<td align="center" class="src">' + compl + '%</td>' +
+        '<td align="center" class="src">' + sack + '%</td></tr>';
+    });
+    out.innerHTML = html + '</table>';
+  } catch (e) { out.innerHTML = '<p style="color:#e06">' + escapeHtml(e.message) + '</p>'; }
+}
+
+// --- Playbook (eigene Spielzüge im Browser speichern) ---
+function loadBook() { try { return JSON.parse(localStorage.getItem('theo_playbook') || '[]'); } catch (e) { return []; } }
+function saveBook(b) { localStorage.setItem('theo_playbook', JSON.stringify(b)); }
+function savePlay() {
+  const name = (document.getElementById('playName').value || '').trim();
+  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  const req = curRequest({});
+  const book = loadBook().filter(p => p.name !== name);
+  book.push({ name: name, routes: req.routes, kind: req.kind });
+  saveBook(book); document.getElementById('playName').value = ''; renderPlaybook();
+}
+function loadPlay(name) {
+  const p = loadBook().find(x => x.name === name); if (!p) return;
+  document.querySelectorAll('#routeEditor select').forEach(s => {
+    if (p.routes[s.dataset.slot]) s.value = p.routes[s.dataset.slot];
+  });
+}
+function deletePlay(name) { saveBook(loadBook().filter(p => p.name !== name)); renderPlaybook(); }
+function renderPlaybook() {
+  const el = document.getElementById('playbook'); const book = loadBook();
+  if (!book.length) { el.innerHTML = 'Noch keine eigenen Spielzüge gespeichert.'; return; }
+  el.innerHTML = 'Eigene Spielzüge: ' + book.map(p =>
+    '<span style="display:inline-block;margin:2px 4px">' +
+    '<a href="#" onclick="loadPlay(\\'' + p.name.replace(/'/g, "") + '\\');return false">' + escapeHtml(p.name) + '</a> ' +
+    '<a href="#" onclick="deletePlay(\\'' + p.name.replace(/'/g, "") + '\\');return false" style="color:#e06">✕</a></span>').join('');
+}
+
 window.addEventListener('load', loadPlays);
 
 // PWA: Service Worker registrieren.

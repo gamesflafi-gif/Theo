@@ -120,6 +120,26 @@ def test_simulate_bad_defense(client):
     assert r.status_code == 400
 
 
+def test_advisor_best_defense(client):
+    r = client.post("/api/advisor",
+                    json={"mode": "best_defense", "offense_id": "four_verticals",
+                          "n": 30})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["mode"] == "best_defense"
+    assert len(d["rows"]) >= 5
+    ys = [row["mean_yards"] for row in d["rows"]]
+    assert ys == sorted(ys)
+
+
+def test_advisor_best_offense(client):
+    r = client.post("/api/advisor",
+                    json={"mode": "best_offense", "defense_id": "cover2_zone",
+                          "n": 30})
+    assert r.status_code == 200
+    assert r.json()["rows"][0]["name"]
+
+
 def test_upload_too_large_rejected(client, monkeypatch):
     # Upload-Limit künstlich klein setzen und ein größeres "Video" senden.
     import importlib

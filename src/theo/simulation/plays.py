@@ -132,6 +132,14 @@ OFFENSE_LIBRARY: dict[str, OffensePlay] = {
                     {"WR_L": "post", "WR_R": "comeback", "SLOT": "out",
                      "TE": "block", "RB": "block"},
                     "Tiefer Post nach Play-Action – braucht Zeit."),
+        OffensePlay("flood", "Flood (3 Ebenen)", "pass",
+                    {"WR_L": "go", "WR_R": "comeback", "SLOT": "corner",
+                     "TE": "flat", "RB": "block"},
+                    "Drei Routen auf einer Seite in drei Tiefen – flutet die Zone."),
+        OffensePlay("stick", "Stick (Quick Game)", "pass",
+                    {"WR_L": "out", "WR_R": "out", "SLOT": "hitch",
+                     "TE": "flat", "RB": "block"},
+                    "Schnelles Kurzpassspiel – gut gegen Druck."),
         OffensePlay("inside_zone", "Inside Zone (Lauf)", "run",
                     {"WR_L": "block", "WR_R": "block", "SLOT": "block",
                      "TE": "block", "RB": "run"},
@@ -152,6 +160,8 @@ DEFENSE_LIBRARY: dict[str, DefensePlay] = {
                     "Mann-Deckung mit zusätzlichem Blitzer – früher Druck."),
         DefensePlay("cover2_blitz", "Cover 2 Blitz", "cover2", True,
                     "Zone-Blitz – Druck bei zwei tiefen Zonen."),
+        DefensePlay("cover4_quarters", "Cover 4 (Quarters)", "cover4", False,
+                    "Vier tiefe Viertel – stark gegen tiefe Pässe."),
     ]
 }
 
