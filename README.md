@@ -17,7 +17,8 @@ Das Projekt wird **stufenweise** aufgebaut und ist nach jeder Stufe lauffähig.
 | 1 | Wissensbasis + Q&A-Engine (lokal + optional Claude) + CLI + Video-Basisanalyse | ✅ fertig |
 | 2 | Computer Vision: Spieler-/Ball-Erkennung (HOG/YOLO), Tracking, Formations- & Spielzug-Schätzung | ✅ fertig |
 | 3 | Web-/Upload-Oberfläche (Fragen stellen + Videos hochladen) | ✅ fertig |
-| 4 | Lernende Komponente (Spielzüge/Strategie), Live-Daten | 🔜 geplant |
+| 4 | **Installierbare App (PWA)** – auf Handy & Desktop installierbar, offline-fähige Shell | ✅ fertig |
+| 5 | Lernende Komponente (Spielzüge/Strategie), Live-Daten | 🔜 geplant |
 
 ## Installation
 
@@ -71,6 +72,24 @@ theo serve                      # http://127.0.0.1:8000
 **Fragen stellen** (nutzt dieselbe Q&A-Engine) und **Video hochladen** zur
 Analyse (max. 30 s; das Video wird nach der Analyse serverseitig gelöscht).
 API-Endpunkte: `POST /api/ask`, `POST /api/analyze`, `GET /api/health`.
+
+### Als App installieren (PWA)
+
+Theo ist eine **Progressive Web App** und lässt sich als eigenständige App
+installieren – auf Handy wie Desktop, ohne App Store:
+
+1. `theo serve` starten und die Adresse im Browser öffnen.
+2. **Desktop (Chrome/Edge):** Install-Symbol in der Adressleiste oder den Button
+   „📲 Als App installieren" nutzen.
+3. **Handy (Android/iOS):** Browser-Menü → „Zum Startbildschirm hinzufügen".
+
+Die App startet dann im eigenen Fenster (Standalone), hat ein eigenes Icon und
+eine offline-fähige Shell (Service Worker). Fragen-/Video-Funktionen brauchen
+weiterhin den laufenden Server.
+
+> Für die Installation auf anderen Geräten muss der Server erreichbar sein
+> (`theo serve --host 0.0.0.0`) – idealerweise über HTTPS, da PWAs außerhalb von
+> `localhost` einen sicheren Kontext verlangen.
 
 Ohne `ANTHROPIC_API_KEY` antwortet Theo **extraktiv** direkt aus der Wissensbasis.
 Mit Key und installiertem `anthropic`-Paket formuliert Claude die Antwort als RAG

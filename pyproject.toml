@@ -34,6 +34,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "theo.knowledge" = ["data/*.md"]
+"theo.web" = ["static/*", "static/icons/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

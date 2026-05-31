@@ -45,3 +45,33 @@ def test_analyze_rejects_bad_format(client):
     files = {"file": ("notes.txt", io.BytesIO(b"hello"), "text/plain")}
     r = client.post("/api/analyze", files=files, data={"detect": "true"})
     assert r.status_code == 400
+
+
+def test_manifest_served(client):
+    r = client.get("/manifest.webmanifest")
+    assert r.status_code == 200
+    assert "manifest" in r.headers["content-type"]
+    body = r.json()
+    assert body["name"].startswith("Theo")
+    assert body["display"] == "standalone"
+    assert len(body["icons"]) >= 2
+
+
+def test_service_worker_served(client):
+    r = client.get("/sw.js")
+    assert r.status_code == 200
+    assert "javascript" in r.headers["content-type"]
+    assert "addEventListener" in r.text
+
+
+def test_icons_served(client):
+    for size in (192, 512):
+        r = client.get(f"/static/icons/icon-{size}.png")
+        assert r.status_code == 200
+        assert r.headers["content-type"] == "image/png"
+
+
+def test_index_links_pwa(client):
+    html = client.get("/").text
+    assert 'rel="manifest"' in html
+    assert "/sw.js" in html
