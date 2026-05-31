@@ -140,6 +140,16 @@ class Simulator:
             if deff.blitz:
                 players["LB2"].behavior = "rush"
                 rushers.append("LB2")
+        elif cov == "cover0":
+            # Mann ohne tiefe Hilfe, alle übrigen blitzen.
+            man = {"CB_L": "WR_L", "CB_R": "WR_R", "S_R": "SLOT",
+                   "LB2": "TE", "LB3": "RB"}
+            for did, tid in man.items():
+                players[did].behavior = "man"
+                players[did].target = tid
+            players["S_L"].behavior = "rush"
+            players["LB1"].behavior = "rush"
+            rushers += ["S_L", "LB1"]
         elif cov == "cover4":
             zones = {"CB_L": (9.0, 17.0), "S_L": (19.0, 18.0),
                      "S_R": (35.0, 18.0), "CB_R": (44.0, 17.0),

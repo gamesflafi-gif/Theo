@@ -75,6 +75,21 @@ def test_cover4_runs():
     assert res.outcome in VALID
 
 
+def test_cover0_and_new_plays_run():
+    for oid in ("dagger", "hb_screen", "outside_zone"):
+        res = simulate_play(OFFENSE_LIBRARY[oid], DEFENSE_LIBRARY["cover0_blitz"],
+                            seed=2)
+        assert res.outcome in VALID
+
+
+def test_cover0_pressures_deep_play():
+    # All-Out-Blitz sollte bei einem tiefen Play Sacks erzeugen.
+    sim = Simulator()
+    d = sim.simulate_many(OFFENSE_LIBRARY["four_verticals"],
+                          DEFENSE_LIBRARY["cover0_blitz"], n=150)
+    assert d.outcomes.get("sack", 0) > 0
+
+
 def test_rank_defenses_sorted_ascending():
     rows = rank_defenses(OFFENSE_LIBRARY["four_verticals"], n=40)
     assert len(rows) == len(DEFENSE_LIBRARY)

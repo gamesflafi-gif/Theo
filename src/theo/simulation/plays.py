@@ -140,10 +140,22 @@ OFFENSE_LIBRARY: dict[str, OffensePlay] = {
                     {"WR_L": "out", "WR_R": "out", "SLOT": "hitch",
                      "TE": "flat", "RB": "block"},
                     "Schnelles Kurzpassspiel – gut gegen Druck."),
+        OffensePlay("dagger", "Dagger", "pass",
+                    {"WR_L": "go", "SLOT": "in", "WR_R": "comeback",
+                     "TE": "block", "RB": "block"},
+                    "Tiefer Go räumt für den Dig darunter – Zonen-Beater."),
+        OffensePlay("hb_screen", "HB Screen", "pass",
+                    {"WR_L": "go", "WR_R": "go", "SLOT": "go",
+                     "TE": "block", "RB": "screen"},
+                    "Screen zum Running Back – lockt den Pass-Rush."),
         OffensePlay("inside_zone", "Inside Zone (Lauf)", "run",
                     {"WR_L": "block", "WR_R": "block", "SLOT": "block",
                      "TE": "block", "RB": "run"},
                     "Laufspielzug zwischen den Tackles."),
+        OffensePlay("outside_zone", "Outside Zone (Lauf)", "run",
+                    {"WR_L": "block", "WR_R": "block", "SLOT": "block",
+                     "TE": "block", "RB": "run"},
+                    "Laufspielzug nach außen – sucht den Rand."),
     ]
 }
 
@@ -162,6 +174,8 @@ DEFENSE_LIBRARY: dict[str, DefensePlay] = {
                     "Zone-Blitz – Druck bei zwei tiefen Zonen."),
         DefensePlay("cover4_quarters", "Cover 4 (Quarters)", "cover4", False,
                     "Vier tiefe Viertel – stark gegen tiefe Pässe."),
+        DefensePlay("cover0_blitz", "Cover 0 (All-Out-Blitz)", "cover0", True,
+                    "Mann-Deckung ohne tiefe Hilfe – maximaler Druck, hohes Risiko."),
     ]
 }
 
