@@ -55,16 +55,24 @@ def cmd_chat(args: argparse.Namespace) -> int:
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
-    from theo.video import analyze_video
-
     try:
+        if args.detect:
+            from theo.video import VideoPipeline
+
+            pipeline = VideoPipeline(detector=args.detector)
+            result = pipeline.process(args.path, max_seconds=args.max_seconds)
+            print(result.summary())
+            return 0
+
+        from theo.video import analyze_video
+
         result = analyze_video(args.path)
-    except RuntimeError as exc:
+    except (RuntimeError, FileNotFoundError) as exc:
         print(f"Fehler: {exc}", file=sys.stderr)
         return 1
     print(result.summary())
     if args.show_roadmap:
-        print("\nGeplante Analysen (Stufe 2):")
+        print("\nGeplante Analysen (Stufe 2+):")
         for feat in result.planned_features:
             print(f"  - {feat}")
     return 0
@@ -110,8 +118,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_an = sub.add_parser("analyze", help="Ein Spiel-/Trainingsvideo analysieren.")
     p_an.add_argument("path", help="Pfad zur Videodatei.")
+    p_an.add_argument("--detect", action="store_true",
+                      help="Volle CV-Pipeline: Spielererkennung, Tracking, "
+                           "Formation & Spielzug-Schätzung.")
+    p_an.add_argument("--detector", choices=["hog", "yolo"], default="hog",
+                      help="Detektor für --detect (yolo benötigt theo[video-yolo]).")
+    p_an.add_argument("--max-seconds", type=float, default=30.0,
+                      help="Maximale analysierte Videolänge (Sekunden).")
     p_an.add_argument("--show-roadmap", action="store_true",
-                      help="Geplante CV-Analysen (Stufe 2) anzeigen.")
+                      help="Geplante CV-Analysen anzeigen (Basisanalyse).")
     p_an.set_defaults(func=cmd_analyze)
 
     p_top = sub.add_parser("topics", help="Inhalt der Wissensbasis auflisten.")

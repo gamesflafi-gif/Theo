@@ -1,20 +1,46 @@
 """Video-Analyse für Spiel- und Trainingsaufnahmen.
 
-Dieses Modul definiert die Pipeline-Schnittstelle. Die rechenintensive Computer
-Vision (Spielererkennung, Tracking, Formations-/Spielzug-Erkennung) kommt in
-Stufe 2 und ist über das Extra `theo[video]` (OpenCV) optional.
+Zwei Ebenen:
+- :func:`analyze_video` / :class:`VideoAnalyzer` – schnelle Basisanalyse
+  (Metadaten + Bewegungs-/Snap-Erkennung), nur OpenCV nötig.
+- :func:`process_video` / :class:`VideoPipeline` – volle CV-Pipeline mit
+  Spielererkennung, Tracking, Formations- und Spielzug-Schätzung. Mit dem
+  HOG-Baseline-Detektor sofort nutzbar, optional mit YOLO (``theo[video-yolo]``).
 """
 
 from theo.video.analyzer import (
     AnalysisResult,
+    MotionSegment,
     VideoAnalyzer,
     VideoMetadata,
     analyze_video,
 )
+from theo.video.detection import (
+    Detection,
+    Detector,
+    HOGPeopleDetector,
+    YOLODetector,
+    get_detector,
+)
+from theo.video.formations import (
+    FormationSnapshot,
+    PlayEstimate,
+    estimate_formation,
+    estimate_play,
+)
+from theo.video.pipeline import PipelineResult, VideoPipeline, process_video
+from theo.video.tracking import CentroidTracker, Track
 
 __all__ = [
-    "VideoAnalyzer",
-    "AnalysisResult",
-    "VideoMetadata",
+    # Basisanalyse
+    "VideoAnalyzer", "AnalysisResult", "VideoMetadata", "MotionSegment",
     "analyze_video",
+    # Detektion
+    "Detection", "Detector", "HOGPeopleDetector", "YOLODetector", "get_detector",
+    # Tracking
+    "CentroidTracker", "Track",
+    # Formation / Spielzug
+    "FormationSnapshot", "PlayEstimate", "estimate_formation", "estimate_play",
+    # Pipeline
+    "VideoPipeline", "PipelineResult", "process_video",
 ]
