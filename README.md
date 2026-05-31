@@ -1,19 +1,70 @@
 # Theo 🟢 — KI, die lokal & datenschutzsicher arbeitet
 
-Theo besteht aus zwei Teilen:
+Theo besteht aus drei Teilen:
 
-1. **🔒 Theo Akte** *(das Produkt)* — ein **lokaler Dokumenten-Assistent**: durchsucht
-   vertrauliche Dokumente blitzschnell und findet die passenden Stellen — **komplett
-   offline, kein Byte verlässt den Rechner.** Genau dafür, wo Cloud-KI (ChatGPT &
-   Co.) aus Datenschutzgründen **verboten** ist: Kanzleien, Arztpraxen,
-   Steuerberater, Behörden.
-2. **🧠 Theo Lab** *(das Fundament)* — ein selbst gebauter Mini-GPT, an dem wir die
+1. **🗓️ Theo Tag** *(persönlicher Assistent)* — plant deinen Tag, **erkennt deine
+   Gewohnheiten** aus deinem Verlauf und **erinnert dich** rechtzeitig (Konsole,
+   Desktop oder Push aufs Handy via Telegram). Alle Daten bleiben **lokal**.
+2. **🔒 Theo Akte** *(Doku-Assistent)* — durchsucht vertrauliche Dokumente
+   blitzschnell und findet passende Stellen — **komplett offline**. Für alle, wo
+   Cloud-KI aus Datenschutzgründen **verboten** ist: Kanzleien, Praxen, Behörden.
+3. **🧠 Theo Lab** *(das Fundament)* — ein selbst gebauter Mini-GPT, an dem wir die
    KI-Technik von Grund auf verstehen.
+
+> Roter Faden: **Deine Daten bleiben bei dir.** Egal ob Tagesablauf oder Akten –
+> nichts wandert in die Cloud. Das ist Theos Versprechen und sein Marktvorteil.
 
 > **Warum das ein Markt ist:** Anwälte, Ärzte und Ämter in Deutschland *dürfen*
 > ihre sensiblen Daten nicht in die Cloud geben (DSGVO). Eine KI, die **lokal**
 > läuft, ist für sie oft wichtiger als perfekte Qualität — und genau das können
 > die großen Cloud-Anbieter nicht bieten. Das ist unsere Lücke.
+
+---
+
+## 🗓️ Theo Tag — dein persönlicher Tagesplaner
+
+Theo plant deinen Tag, lernt deine Gewohnheiten und erinnert dich – alles lokal.
+
+```bash
+# Feste Termine (z. B. werktags 9:30 Standup, 5 Min vorher erinnern)
+python -m theo.tag.cli termin "Standup" 09:30 --tage Mo,Di,Mi,Do,Fr --erinnerung 5
+
+# Aufgaben ohne feste Zeit (werden automatisch in freie Lücken geplant)
+python -m theo.tag.cli aufgabe "Steuererklärung" --prio 1 --dauer 60
+
+# Was du tust protokollieren -> daraus lernt Theo deine Gewohnheiten
+python -m theo.tag.cli log "Sport"
+
+python -m theo.tag.cli gewohnheiten   # erkannte Muster anzeigen
+python -m theo.tag.cli plan           # heutigen Tagesplan anzeigen
+python -m theo.tag.cli dienst         # laufend automatisch erinnern
+```
+
+Beispiel-Tagesplan, den Theo selbst zusammenstellt:
+
+```
+Theos Plan für Monday, 01.06.2026
+========================================
+07:05  🔁 Sport  (30 Min)            <- als Gewohnheit erkannt
+07:40  🔁 Kaffee  (30 Min)           <- als Gewohnheit erkannt
+08:10  ✅ Steuererklärung  (60 Min)  <- Aufgabe, in Lücke geplant
+09:30  📌 Standup-Meeting  (15 Min)  <- fester Termin
+```
+
+**Gewohnheits-Erkennung:** Theo gruppiert deinen Verlauf nach Tätigkeit und
+Wochentag. Wiederholt sich etwas an genügend Tagen zur ähnlichen Zeit, wird es
+als Gewohnheit mit Konfidenz erkannt – nachvollziehbar, keine Blackbox.
+
+**Push aufs Handy:** über einen kostenlosen Telegram-Bot (Token als
+`THEO_TG_TOKEN`/`THEO_TG_CHAT` setzen) – sonst Desktop-Benachrichtigung oder Konsole.
+
+| Datei | Inhalt |
+|---|---|
+| `theo/tag/modell.py` | Datentypen (Termin, Aufgabe, Aktivität) + lokale Speicherung |
+| `theo/tag/gewohnheiten.py` | Gewohnheiten aus dem Verlauf erkennen |
+| `theo/tag/planer.py` | Tagesplan bauen (Termine + Gewohnheiten + Aufgaben) |
+| `theo/tag/erinnerung.py` | fällige Erinnerungen + Push-Kanäle |
+| `theo/tag/cli.py` | Kommandozeile |
 
 ---
 
