@@ -3,7 +3,8 @@ from theo.knowledge import load_sections
 
 def test_sections_load():
     sections = load_sections()
-    assert len(sections) > 20
+    assert len(sections) > 60
+    assert len({s.doc for s in sections}) >= 15
     # Jeder Abschnitt hat Titel und Text.
     for sec in sections:
         assert sec.title
@@ -13,7 +14,11 @@ def test_sections_load():
 
 def test_known_topics_present():
     corpus = " ".join(s.text.lower() for s in load_sections())
-    for term in ["quarterback", "touchdown", "field goal", "blitz", "safety"]:
+    for term in [
+        "quarterback", "touchdown", "field goal", "blitz", "safety",
+        "afc west", "super bowl", "heisman", "gfl", "german bowl", "elf",
+        "offensive coordinator", "passer rating", "walter camp",
+    ]:
         assert term in corpus, f"Thema fehlt in der Wissensbasis: {term}"
 
 

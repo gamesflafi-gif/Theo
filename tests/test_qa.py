@@ -24,6 +24,10 @@ def test_retriever_finds_touchdown():
         ("Wie funktioniert ein Field Goal?", "field goal"),
         ("Was ist ein Blitz in der Defense?", "blitz"),
         ("Was passiert bei einer Safety?", "safety"),
+        ("Welche Teams sind in der AFC West?", "broncos"),
+        ("Was ist die GFL?", "german bowl"),
+        ("Welche deutschen Teams spielen in der ELF?", "rhein fire"),
+        ("Was ist das College Football Playoff?", "playoff"),
     ],
 )
 def test_engine_answers_are_relevant(engine, question, expect_term):
