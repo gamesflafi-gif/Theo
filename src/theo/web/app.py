@@ -15,16 +15,47 @@ import tempfile
 from pathlib import Path
 
 from theo.qa import QAEngine
+from theo.simulation import (
+    DEFENSE_LIBRARY,
+    OFFENSE_LIBRARY,
+    OFFENSE_SLOTS,
+    ROUTE_NAMES,
+    Simulator,
+    make_offense_play,
+)
 
 try:
     from fastapi import FastAPI, File, Form, HTTPException, UploadFile
     from fastapi.responses import HTMLResponse, JSONResponse, Response
     from fastapi.staticfiles import StaticFiles
+    from pydantic import BaseModel
 except ImportError as exc:  # pragma: no cover
     raise RuntimeError(
         "Das Web-Backend benötigt FastAPI. Installiere es mit "
         "`pip install theo[web]`."
     ) from exc
+
+
+class SimRequest(BaseModel):
+    offense_id: str | None = None
+    defense_id: str = "cover2_zone"
+    routes: dict[str, str] | None = None
+    kind: str = "pass"
+    seed: int = 0
+    n: int = 100
+
+
+def _resolve_plays(req: "SimRequest"):
+    deff = DEFENSE_LIBRARY.get(req.defense_id)
+    if deff is None:
+        raise HTTPException(status_code=400, detail="Unbekannte Defense.")
+    if req.routes:
+        off = make_offense_play(req.routes, kind=req.kind)
+    elif req.offense_id in OFFENSE_LIBRARY:
+        off = OFFENSE_LIBRARY[req.offense_id]
+    else:
+        raise HTTPException(status_code=400, detail="Unbekannte Offense.")
+    return off, deff
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
@@ -75,6 +106,28 @@ def create_app() -> "FastAPI":
     def service_worker() -> Response:
         # Muss im Root-Scope liegen, um die ganze App zu kontrollieren.
         return Response(_SERVICE_WORKER, media_type="application/javascript")
+
+    @app.get("/api/plays")
+    def plays() -> dict:
+        return {
+            "offense": [p.to_dict() for p in OFFENSE_LIBRARY.values()],
+            "defense": [p.to_dict() for p in DEFENSE_LIBRARY.values()],
+            "routes": list(ROUTE_NAMES) + ["block"],
+            "slots": [{"id": s.id, "role": s.role}
+                      for s in OFFENSE_SLOTS if s.id != "QB"],
+        }
+
+    @app.post("/api/simulate")
+    def simulate(req: SimRequest) -> dict:
+        off, deff = _resolve_plays(req)
+        return Simulator().simulate(off, deff, seed=req.seed).to_dict()
+
+    @app.post("/api/simulate/batch")
+    def simulate_batch(req: SimRequest) -> dict:
+        off, deff = _resolve_plays(req)
+        n = max(1, min(500, req.n))
+        return Simulator().simulate_many(
+            off, deff, n=n, base_seed=req.seed).to_dict()
 
     @app.get("/api/health")
     def health() -> dict:
@@ -221,6 +274,27 @@ _INDEX_HTML = """<!DOCTYPE html>
     <div id="analysis"></div>
   </div>
 
+  <div class="card">
+    <h2>Spielzug-Simulator</h2>
+    <p class="muted">Offense-Play gegen Defense-Play antreten lassen, den Verlauf
+    ansehen und mögliche Ausgänge berechnen. (Vereinfachtes Modell.)</p>
+    <div style="display:flex;gap:.8rem;flex-wrap:wrap">
+      <label class="muted">Offense<br><select id="offSel"></select></label>
+      <label class="muted">Defense<br><select id="defSel"></select></label>
+    </div>
+    <details style="margin:.6rem 0">
+      <summary class="muted" style="cursor:pointer">Routen anpassen (eigener Spielzug)</summary>
+      <div id="routeEditor" style="margin-top:.5rem"></div>
+    </details>
+    <div>
+      <button onclick="simulateOne()">▶ Simulieren</button>
+      <button style="background:#6b46c1" onclick="simulateBatch()">📊 100× simulieren</button>
+    </div>
+    <canvas id="field" width="320" height="470"
+      style="width:100%;max-width:340px;display:block;background:#14401f;border-radius:8px;margin-top:.6rem;border:1px solid #262a33"></canvas>
+    <div id="simOut"></div>
+  </div>
+
 <script>
 async function ask() {
   const q = document.getElementById('q').value.trim();
@@ -273,6 +347,111 @@ async function analyze() {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+// --- Spielzug-Simulator ---
+let PLAYS = null, animTimer = null;
+const YMIN = -9, YMAX = 46, FW = 53.3;
+async function loadPlays() {
+  try { PLAYS = await (await fetch('/api/plays')).json(); }
+  catch (e) { return; }
+  const off = document.getElementById('offSel'), def = document.getElementById('defSel');
+  off.innerHTML = PLAYS.offense.map(p => '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>').join('');
+  def.innerHTML = PLAYS.defense.map(p => '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>').join('');
+  off.onchange = fillRoutes; fillRoutes();
+  drawField();
+}
+function curOffense() { return PLAYS.offense.find(p => p.id === document.getElementById('offSel').value); }
+function fillRoutes() {
+  const cur = curOffense(), ed = document.getElementById('routeEditor');
+  ed.innerHTML = PLAYS.slots.map(s => {
+    const opts = PLAYS.routes.map(r => '<option value="' + r + '"' + (cur.routes[s.id] === r ? ' selected' : '') + '>' + r + '</option>').join('');
+    return '<label class="muted" style="display:inline-block;margin:.2rem .5rem .2rem 0">' + s.id +
+      '<br><select data-slot="' + s.id + '">' + opts + '</select></label>';
+  }).join('');
+}
+function curRequest(extra) {
+  const routes = {};
+  document.querySelectorAll('#routeEditor select').forEach(s => routes[s.dataset.slot] = s.value);
+  return Object.assign({ routes: routes, kind: curOffense().kind,
+    defense_id: document.getElementById('defSel').value }, extra);
+}
+function field() { return document.getElementById('field'); }
+function sx(x) { return x / FW * field().width; }
+function sy(y) { return field().height - (y - YMIN) / (YMAX - YMIN) * field().height; }
+function drawField() {
+  const cv = field(), ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#14401f'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '9px sans-serif';
+  for (let y = -5; y <= 45; y += 5) {
+    ctx.beginPath(); ctx.moveTo(0, sy(y)); ctx.lineTo(cv.width, sy(y)); ctx.stroke();
+  }
+  // Line of Scrimmage betonen.
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, sy(0)); ctx.lineTo(cv.width, sy(0)); ctx.stroke();
+}
+function drawFrame(players, ball) {
+  drawField();
+  const ctx = field().getContext('2d');
+  for (const p of players) {
+    if (p.role === 'OL') continue; // Linemen ausblenden für Übersicht
+    ctx.beginPath();
+    ctx.fillStyle = p.team === 'offense' ? '#3b82f6' : '#ef4444';
+    ctx.arc(sx(p.x), sy(p.y), 6, 0, 6.29); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(p.role, sx(p.x), sy(p.y) - 8);
+  }
+  if (ball) {
+    ctx.beginPath(); ctx.fillStyle = '#c98a3a';
+    ctx.arc(sx(ball.x), sy(ball.y), 4, 0, 6.29); ctx.fill();
+  }
+}
+function animate(d) {
+  clearInterval(animTimer);
+  let i = 0;
+  animTimer = setInterval(() => {
+    if (i >= d.frames.length) { clearInterval(animTimer); return; }
+    drawFrame(d.frames[i], d.ball[i]); i++;
+  }, Math.max(40, d.dt * 1000));
+}
+async function postJSON(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body) });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || 'Fehler');
+  return d;
+}
+async function simulateOne() {
+  const out = document.getElementById('simOut');
+  try {
+    const d = await postJSON('/api/simulate', curRequest({ seed: Math.floor(Math.random() * 1e6) }));
+    let txt = d.summary;
+    if (d.notes && d.notes.length) txt += '\\n' + d.notes.join('\\n');
+    out.innerHTML = '<pre>' + escapeHtml(txt) + '</pre>';
+    animate(d);
+  } catch (e) { out.innerHTML = '<p style="color:#e06">' + escapeHtml(e.message) + '</p>'; }
+}
+async function simulateBatch() {
+  const out = document.getElementById('simOut');
+  out.innerHTML = '<p class="muted">Simuliere 100 Spielzüge…</p>';
+  try {
+    const d = await postJSON('/api/simulate/batch', curRequest({ n: 100, seed: Math.floor(Math.random() * 1e5) }));
+    let html = '<pre>Ø ' + d.mean_yards + ' Yards (Median ' + d.median_yards +
+      ', best ' + d.best_yards + ', worst ' + d.worst_yards + ')</pre>';
+    const labels = { complete: 'Komplett', incomplete: 'Inkomplett', sack: 'Sack',
+      interception: 'Interception', run: 'Lauf' };
+    for (const k of Object.keys(d.outcome_pct)) {
+      const pct = d.outcome_pct[k];
+      html += '<div style="margin:2px 0"><span class="muted" style="display:inline-block;width:90px">' +
+        (labels[k] || k) + '</span>' +
+        '<span style="display:inline-block;height:12px;background:#2d6cdf;width:' + (pct * 1.5) +
+        'px;border-radius:3px;vertical-align:middle"></span> ' + pct + '%</div>';
+    }
+    out.innerHTML = html;
+  } catch (e) { out.innerHTML = '<p style="color:#e06">' + escapeHtml(e.message) + '</p>'; }
+}
+window.addEventListener('load', loadPlays);
 
 // PWA: Service Worker registrieren.
 if ('serviceWorker' in navigator) {

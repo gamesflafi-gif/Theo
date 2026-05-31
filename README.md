@@ -18,7 +18,8 @@ Das Projekt wird **stufenweise** aufgebaut und ist nach jeder Stufe lauffähig.
 | 2 | Computer Vision: Spieler-/Ball-Erkennung (HOG/YOLO), Tracking, Formations- & Spielzug-Schätzung | ✅ fertig |
 | 3 | Web-/Upload-Oberfläche (Fragen stellen + Videos hochladen) | ✅ fertig |
 | 4 | **Installierbare App (PWA)** – auf Handy & Desktop installierbar, offline-fähige Shell | ✅ fertig |
-| 5 | Lernende Komponente (Spielzüge/Strategie), Live-Daten | 🔜 geplant |
+| 5 | **Spielzug-Simulator** – Offense-Play vs. Defense-Play, animierter Verlauf + Ausgangsverteilung | ✅ fertig |
+| 6 | Lernende Komponente (trainiertes Modell), Live-Daten | 🔜 geplant |
 
 ## Installation
 
@@ -91,6 +92,23 @@ weiterhin den laufenden Server.
 > (`theo serve --host 0.0.0.0`) – idealerweise über HTTPS, da PWAs außerhalb von
 > `localhost` einen sicheren Kontext verlangen.
 
+### Spielzug-Simulator
+
+Im Bereich **„Spielzug-Simulator"** der Web-App lässt sich ein Offense-Play gegen
+ein Defense-Play antreten:
+- Offense- und Defense-Spielzug aus der Bibliothek wählen (z. B. *Four Verticals*
+  vs. *Cover 2*) oder über „Routen anpassen" einen **eigenen Spielzug** bauen.
+- **▶ Simulieren** zeigt den Verlauf als Animation auf dem Feld (Offense blau,
+  Defense rot, Ball) samt Ausgang (komplett/inkomplett/Sack/INT/Lauf, Yards).
+- **📊 100× simulieren** rechnet eine **Ausgangsverteilung** (Ø Yards, beste/
+  schlechteste, Quoten je Ausgang).
+
+Das Modell ist bewusst vereinfacht (Routen, Mann-/Zone-Deckung, Pass-Rush,
+Separation am Catch), bildet Football-Tendenzen aber plausibel ab – z. B. schlägt
+*Smash* eine *Cover 2*, während ein *Blitz* tiefe Pässe zu Sacks zwingt.
+
+API: `GET /api/plays`, `POST /api/simulate`, `POST /api/simulate/batch`.
+
 Ohne `ANTHROPIC_API_KEY` antwortet Theo **extraktiv** direkt aus der Wissensbasis.
 Mit Key und installiertem `anthropic`-Paket formuliert Claude die Antwort als RAG
 über die gefundenen Abschnitte (Modus `auto`).
@@ -122,8 +140,12 @@ src/theo/
     tracking.py     CentroidTracker (IDs über Frames)
     formations.py   Formations- & Spielzug-Heuristik (mit Konfidenz)
     pipeline.py     volle Pipeline: Detektion + Tracking + Analyse
+  simulation/
+    model.py        Datenmodell (Frames, Ergebnis, Verteilung)
+    plays.py        Routen, Formationen, Spielzug-Bibliothek
+    engine.py       Simulations-Engine + Monte-Carlo
   web/
-    app.py          FastAPI-Backend + Single-Page-Oberfläche
+    app.py          FastAPI-Backend + Single-Page-Oberfläche (inkl. Simulator)
   cli.py            Kommandozeile (ask/chat/analyze/topics/serve)
 tests/              pytest-Tests
 ```

@@ -77,6 +77,49 @@ def test_index_links_pwa(client):
     assert "/sw.js" in html
 
 
+def test_plays_listed(client):
+    d = client.get("/api/plays").json()
+    assert any(p["id"] == "four_verticals" for p in d["offense"])
+    assert any(p["id"] == "cover2_zone" for p in d["defense"])
+    assert "slant" in d["routes"]
+    assert {s["id"] for s in d["slots"]} >= {"WR_L", "RB"}
+
+
+def test_simulate_endpoint(client):
+    r = client.post("/api/simulate",
+                    json={"offense_id": "slant_flat", "defense_id": "cover2_zone",
+                          "seed": 1})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["outcome"] in {"complete", "incomplete", "sack", "interception", "run"}
+    assert d["frames"] and len(d["ball"]) == len(d["frames"])
+
+
+def test_simulate_custom_routes(client):
+    r = client.post("/api/simulate", json={
+        "routes": {"WR_L": "post", "WR_R": "go", "SLOT": "slant",
+                   "TE": "out", "RB": "flat"},
+        "defense_id": "cover3_zone", "seed": 2})
+    assert r.status_code == 200
+    assert "summary" in r.json()
+
+
+def test_simulate_batch_endpoint(client):
+    r = client.post("/api/simulate/batch",
+                    json={"offense_id": "four_verticals",
+                          "defense_id": "cover2_zone", "n": 50})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["n"] == 50
+    assert sum(d["outcomes"].values()) == 50
+
+
+def test_simulate_bad_defense(client):
+    r = client.post("/api/simulate",
+                    json={"offense_id": "slant_flat", "defense_id": "nope"})
+    assert r.status_code == 400
+
+
 def test_upload_too_large_rejected(client, monkeypatch):
     # Upload-Limit künstlich klein setzen und ein größeres "Video" senden.
     import importlib
