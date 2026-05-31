@@ -127,7 +127,7 @@ def _run_analysis(path: Path, *, detector: str, detect: bool) -> dict:
         from theo.video import VideoPipeline
 
         result = VideoPipeline(detector=detector).process(
-            path, max_seconds=_MAX_ANALYZE_SECONDS
+            path, max_seconds=_MAX_ANALYZE_SECONDS, annotate=True
         )
         data = {
             "mode": "detect",
@@ -136,6 +136,11 @@ def _run_analysis(path: Path, *, detector: str, detect: bool) -> dict:
             "avg_players": round(result.avg_players, 1),
             "max_players": result.max_players,
             "active_segments": len(result.active_segments),
+            "keyframes": [
+                {"label": kf.label, "time_s": round(kf.time_s, 1),
+                 "image": kf.to_data_url()}
+                for kf in result.keyframes
+            ],
         }
         if result.formation:
             data["formation"] = result.formation.descriptor
@@ -250,7 +255,18 @@ async function analyze() {
     const r = await fetch('/api/analyze', { method: 'POST', body: fd });
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail || 'Fehler');
-    out.innerHTML = '<pre>' + escapeHtml(d.summary) + '</pre>';
+    let html = '<pre>' + escapeHtml(d.summary) + '</pre>';
+    if (d.keyframes && d.keyframes.length) {
+      html += '<p class="muted">Annotierte Schlüsselbilder:</p>';
+      for (const kf of d.keyframes) {
+        html += '<figure style="margin:.5rem 0">' +
+          '<img src="' + kf.image + '" alt="' + escapeHtml(kf.label) +
+          '" style="width:100%;border-radius:8px;border:1px solid #262a33">' +
+          '<figcaption class="src">' + escapeHtml(kf.label) +
+          ' (' + kf.time_s + 's)</figcaption></figure>';
+      }
+    }
+    out.innerHTML = html;
   } catch (e) { out.innerHTML = '<p style="color:#e06">' + escapeHtml(e.message) + '</p>'; }
   finally { btn.disabled = false; }
 }

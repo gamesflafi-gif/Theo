@@ -54,14 +54,37 @@ def cmd_chat(args: argparse.Namespace) -> int:
     return 0
 
 
+def _save_keyframes(result, out_dir: str) -> None:
+    import cv2  # type: ignore
+    from pathlib import Path
+
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    if not result.keyframes:
+        print(f"(Keine Keyframes erzeugt – nichts in {out_dir} gespeichert.)")
+        return
+    for i, kf in enumerate(result.keyframes, 1):
+        path = Path(out_dir) / f"keyframe_{i:02d}_{kf.time_s:.1f}s.png"
+        cv2.imwrite(str(path), kf.image)
+        print(f"  gespeichert: {path}")
+
+
 def cmd_analyze(args: argparse.Namespace) -> int:
     try:
+        # --save-frames impliziert die Detektions-Pipeline.
+        if getattr(args, "save_frames", None):
+            args.detect = True
         if args.detect:
             from theo.video import VideoPipeline
 
             pipeline = VideoPipeline(detector=args.detector)
-            result = pipeline.process(args.path, max_seconds=args.max_seconds)
+            result = pipeline.process(
+                args.path,
+                max_seconds=args.max_seconds,
+                annotate=bool(args.save_frames),
+            )
             print(result.summary())
+            if args.save_frames:
+                _save_keyframes(result, args.save_frames)
             return 0
 
         from theo.video import analyze_video
@@ -137,6 +160,9 @@ def build_parser() -> argparse.ArgumentParser:
                       help="Detektor für --detect (yolo benötigt theo[video-yolo]).")
     p_an.add_argument("--max-seconds", type=float, default=30.0,
                       help="Maximale analysierte Videolänge (Sekunden).")
+    p_an.add_argument("--save-frames", metavar="DIR",
+                      help="Annotierte Keyframes (Boxen/LOS) als PNG in DIR speichern "
+                           "(impliziert --detect).")
     p_an.add_argument("--show-roadmap", action="store_true",
                       help="Geplante CV-Analysen anzeigen (Basisanalyse).")
     p_an.set_defaults(func=cmd_analyze)

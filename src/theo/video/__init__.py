@@ -28,7 +28,12 @@ from theo.video.formations import (
     estimate_formation,
     estimate_play,
 )
-from theo.video.pipeline import PipelineResult, VideoPipeline, process_video
+from theo.video.annotate import (
+    draw_detections,
+    encode_jpeg,
+    encode_jpeg_data_url,
+)
+from theo.video.pipeline import Keyframe, PipelineResult, VideoPipeline, process_video
 from theo.video.tracking import CentroidTracker, Track
 
 __all__ = [
@@ -41,6 +46,8 @@ __all__ = [
     "CentroidTracker", "Track",
     # Formation / Spielzug
     "FormationSnapshot", "PlayEstimate", "estimate_formation", "estimate_play",
+    # Annotation
+    "draw_detections", "encode_jpeg", "encode_jpeg_data_url",
     # Pipeline
-    "VideoPipeline", "PipelineResult", "process_video",
+    "VideoPipeline", "PipelineResult", "Keyframe", "process_video",
 ]

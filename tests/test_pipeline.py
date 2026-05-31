@@ -58,6 +58,21 @@ def test_pipeline_runs_end_to_end(tmp_path):
     assert "Detektor: fake" in text
 
 
+def test_pipeline_annotate_produces_keyframes(tmp_path):
+    video = tmp_path / "clip.avi"
+    if not _make_video(video):
+        pytest.skip("VideoWriter nicht verfügbar (kein Codec).")
+
+    pipeline = VideoPipeline(detector=FakeDetector(), sample_fps=5.0)
+    result = pipeline.process(video, max_seconds=None, annotate=True)
+
+    assert result.keyframes, "Es sollten annotierte Keyframes erzeugt werden."
+    for kf in result.keyframes:
+        assert kf.image is not None
+        url = kf.to_data_url()
+        assert url.startswith("data:image/jpeg;base64,")
+
+
 def test_pipeline_missing_file():
     with pytest.raises(FileNotFoundError):
         VideoPipeline(detector=FakeDetector()).process("nicht_da.avi")

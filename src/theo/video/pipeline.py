@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from theo.video.analyzer import MotionSegment, VideoMetadata
+from theo.video.annotate import draw_detections, encode_jpeg, encode_jpeg_data_url
 from theo.video.detection import Detection, Detector, get_detector
 from theo.video.formations import (
     FormationSnapshot,
@@ -33,6 +34,21 @@ def _require_cv2():
 
 
 @dataclass
+class Keyframe:
+    """Ein annotiertes Schlüsselbild der Analyse (Box-Overlay etc.)."""
+
+    label: str
+    time_s: float
+    image: "object"  # numpy-Frame (BGR), nicht serialisiert
+
+    def to_data_url(self, **kwargs) -> str:
+        return encode_jpeg_data_url(self.image, **kwargs)
+
+    def to_jpeg(self, **kwargs) -> bytes:
+        return encode_jpeg(self.image, **kwargs)
+
+
+@dataclass
 class PipelineResult:
     metadata: VideoMetadata
     detector_name: str
@@ -43,6 +59,7 @@ class PipelineResult:
     formation: FormationSnapshot | None = None
     play: PlayEstimate | None = None
     tracks: list[Track] = field(default_factory=list)
+    keyframes: list[Keyframe] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -97,7 +114,11 @@ class VideoPipeline:
         self.tracker = tracker or CentroidTracker()
 
     def process(
-        self, video_path: str | Path, *, max_seconds: float | None = 30.0
+        self,
+        video_path: str | Path,
+        *,
+        max_seconds: float | None = 30.0,
+        annotate: bool = False,
     ) -> PipelineResult:
         cv2 = _require_cv2()
         path = str(video_path)
@@ -114,11 +135,11 @@ class VideoPipeline:
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
             meta = VideoMetadata(path, width, height, fps, frame_count)
-            return self._run(cv2, cap, meta, max_seconds)
+            return self._run(cv2, cap, meta, max_seconds, annotate)
         finally:
             cap.release()
 
-    def _run(self, cv2, cap, meta: VideoMetadata, max_seconds) -> PipelineResult:
+    def _run(self, cv2, cap, meta, max_seconds, annotate=False) -> PipelineResult:
         notes: list[str] = []
         if meta.fps <= 0:
             notes.append("Keine FPS-Information – Analyse eingeschränkt.")
@@ -132,6 +153,8 @@ class VideoPipeline:
         player_counts: list[int] = []
         timeline: list[tuple[float, float]] = []
         detections_by_time: list[tuple[float, list[Detection]]] = []
+        # Bei annotate: gesampelte Frames (heruntergerechnet) zwischenspeichern.
+        frames_by_time: dict[float, object] = {}
         prev_small = None
         idx = 0
         sampled = 0
@@ -160,6 +183,8 @@ class VideoPipeline:
                 persons = [d for d in dets if d.label == "person"]
                 player_counts.append(len(persons))
                 detections_by_time.append((t, dets))
+                if annotate:
+                    frames_by_time[t] = frame.copy()
                 self.tracker.update(dets)
                 sampled += 1
             idx += 1
@@ -172,6 +197,12 @@ class VideoPipeline:
             detections_by_time, active, (meta.height, meta.width)
         )
         play = estimate_play(list(self.tracker.tracks.values()))
+
+        keyframes: list[Keyframe] = []
+        if annotate and frames_by_time:
+            keyframes = self._build_keyframes(
+                detections_by_time, frames_by_time, active, formation
+            )
 
         if sampled == 0:
             notes.append("Keine Frames analysiert (leeres oder unlesbares Video).")
@@ -191,8 +222,39 @@ class VideoPipeline:
             formation=formation,
             play=play,
             tracks=list(self.tracker.tracks.values()),
+            keyframes=keyframes,
             notes=notes,
         )
+
+    def _build_keyframes(
+        self, detections_by_time, frames_by_time, active, formation
+    ) -> list[Keyframe]:
+        dets_at = dict(detections_by_time)
+        # Kandidaten: Snap-Zeitpunkt (Start der ersten aktiven Phase) und der
+        # Frame mit den meisten Detektionen.
+        candidates: list[tuple[str, float]] = []
+        if active:
+            snap_t = min(frames_by_time, key=lambda t: abs(t - active[0].start_s))
+            candidates.append(("Snap / Pre-Snap", snap_t))
+        max_t = max(frames_by_time, key=lambda t: len(dets_at.get(t, [])))
+        if all(abs(max_t - t) > 1e-6 for _, t in candidates):
+            candidates.append(("Meiste Spieler erkannt", max_t))
+
+        los_x = formation.los_x if formation else None
+        keyframes: list[Keyframe] = []
+        for label, t in candidates:
+            frame = frames_by_time.get(t)
+            if frame is None:
+                continue
+            img = draw_detections(
+                frame,
+                dets_at.get(t, []),
+                los_x=los_x,
+                formation=formation if label.startswith("Snap") else None,
+                title=f"{label} @ {t:.1f}s",
+            )
+            keyframes.append(Keyframe(label=label, time_s=t, image=img))
+        return keyframes
 
     def _formation_near_snap(
         self, detections_by_time, active, frame_shape
