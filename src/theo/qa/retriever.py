@@ -27,6 +27,36 @@ _STOPWORDS = {
 
 _TOKEN_RE = re.compile(r"[a-zA-ZäöüÄÖÜß0-9]+")
 
+# Abkürzungen/Synonyme -> zusätzliche Suchbegriffe (verbessert die Treffer).
+_SYNONYMS: dict[str, list[str]] = {
+    "td": ["touchdown"], "tds": ["touchdown"],
+    "int": ["interception"], "ints": ["interception"], "pick": ["interception"],
+    "fg": ["field", "goal"], "pat": ["extrapunkt"], "xp": ["extrapunkt"],
+    "qb": ["quarterback"], "rb": ["running", "back"], "hb": ["running", "back"],
+    "fb": ["fullback"], "wr": ["wide", "receiver"], "te": ["tight", "end"],
+    "ol": ["offensive", "line"], "dl": ["defensive", "line"],
+    "lb": ["linebacker"], "cb": ["cornerback"], "db": ["defensive", "back"],
+    "los": ["line", "scrimmage"], "yac": ["yards", "catch"],
+    "ydl": ["yard"], "yds": ["yards"],
+    "def": ["defense"], "off": ["offense"], "st": ["special", "teams"],
+    "pa": ["play", "action"], "rpo": ["run", "pass", "option"],
+    "to": ["turnover"], "fum": ["fumble"], "sack": ["sack"],
+    "ot": ["overtime"], "hc": ["head", "coach"], "oc": ["offensive", "coordinator"],
+    "dc": ["defensive", "coordinator"],
+    "ints": ["interception"], "picks": ["interception"],
+    "qbs": ["quarterback"], "rbs": ["running", "back"], "wrs": ["wide", "receiver"],
+    "verteidigung": ["defense"], "angriff": ["offense"],
+}
+
+
+def expand_query(tokens: list[str]) -> list[str]:
+    """Erweitert Suchbegriffe um Synonyme/Abkürzungen."""
+    out = list(tokens)
+    for t in tokens:
+        out.extend(_SYNONYMS.get(t, ()))
+    return out
+
+
 # BM25-Parameter (Standardwerte).
 _K1 = 1.5
 _B = 0.75
@@ -88,7 +118,7 @@ class Retriever:
 
     def search(self, query: str, top_k: int = 4) -> list[ScoredSection]:
         """Liefert die `top_k` relevantesten Abschnitte zur Frage."""
-        q_terms = tokenize(query)
+        q_terms = expand_query(tokenize(query))
         if not q_terms:
             return []
         scored: list[ScoredSection] = []

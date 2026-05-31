@@ -4,8 +4,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import re
+
 import theo.qa.llm as llm
 from theo.qa.retriever import Retriever, ScoredSection
+
+
+def _clean_markdown(text: str) -> str:
+    """Macht Markdown-Wissenstext zu gut lesbarer Prosa für die Antwort."""
+    out = []
+    for line in text.splitlines():
+        line = re.sub(r"\*\*(.+?)\*\*", r"\1", line)   # **fett** -> fett
+        line = re.sub(r"^\s*[-*]\s+", "• ", line)       # Aufzählung -> Bullet
+        line = re.sub(r"^#{1,6}\s+", "", line)          # Überschriften-#
+        line = line.replace("`", "")
+        out.append(line.rstrip())
+    return "\n".join(out).strip()
 
 
 @dataclass
@@ -55,9 +69,9 @@ class QAEngine:
             )
         best = scored[0].section
         lines = [
-            f"Aus der Wissensbasis ({best.heading_path}):",
+            f"{best.title}",
             "",
-            best.body or best.text,
+            _clean_markdown(best.body or best.text),
         ]
         if len(scored) > 1:
             lines.append("")

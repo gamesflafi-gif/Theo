@@ -28,6 +28,9 @@ def test_retriever_finds_touchdown():
         ("Was ist die GFL?", "german bowl"),
         ("Welche deutschen Teams spielen in der ELF?", "rhein fire"),
         ("Was ist das College Football Playoff?", "playoff"),
+        ("Wie viele Punkte gibt ein TD?", "touchdown"),
+        ("Was macht der OC?", "coordinator"),
+        ("Wer ist Tom Brady?", "brady"),
     ],
 )
 def test_engine_answers_are_relevant(engine, question, expect_term):
