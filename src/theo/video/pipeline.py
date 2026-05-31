@@ -297,4 +297,62 @@ def process_video(
     return VideoPipeline(detector=detector).process(video_path, **kwargs)
 
 
+def render_annotated_video(
+    video_path: str | Path,
+    out_path: str | Path,
+    *,
+    detector: "Detector | str" = "hog",
+    max_seconds: float | None = 20.0,
+    sample_fps: float = 8.0,
+    fourcc: str = "mp4v",
+) -> int:
+    """Schreibt ein annotiertes Video (Boxen je gesampeltem Frame).
+
+    Returns:
+        Anzahl geschriebener Frames.
+    """
+    cv2 = _require_cv2()
+    det = detector if isinstance(detector, Detector) else get_detector(detector)
+    path = str(video_path)
+    if not Path(path).exists():
+        raise FileNotFoundError(f"Video nicht gefunden: {path}")
+    cap = cv2.VideoCapture(path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Video konnte nicht geöffnet werden: {path}")
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+        stride = max(1, int(round(fps / sample_fps)))
+        max_frames = int(max_seconds * fps) if max_seconds else None
+        writer = cv2.VideoWriter(str(out_path),
+                                 cv2.VideoWriter_fourcc(*fourcc), sample_fps, (w, h))
+        if not writer.isOpened():
+            raise RuntimeError("VideoWriter konnte nicht initialisiert werden "
+                               f"(Codec {fourcc!r}).")
+        idx = written = 0
+        try:
+            while True:
+                if max_frames is not None and idx >= max_frames:
+                    break
+                if not cap.grab():
+                    break
+                if idx % stride == 0:
+                    ok, frame = cap.retrieve()
+                    if not ok:
+                        break
+                    dets = det.detect(frame)
+                    persons = sum(1 for d in dets if d.label == "person")
+                    annotated = draw_detections(
+                        frame, dets, title=f"Theo · {persons} Spieler · t={idx/fps:.1f}s")
+                    writer.write(annotated)
+                    written += 1
+                idx += 1
+        finally:
+            writer.release()
+        return written
+    finally:
+        cap.release()
+
+
 __all__ = ["VideoPipeline", "PipelineResult", "process_video"]

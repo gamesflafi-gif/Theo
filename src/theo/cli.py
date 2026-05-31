@@ -73,6 +73,16 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         # --save-frames impliziert die Detektions-Pipeline.
         if getattr(args, "save_frames", None):
             args.detect = True
+        if args.save_video:
+            from theo.video import render_annotated_video
+
+            written = render_annotated_video(
+                args.path, args.save_video, detector=args.detector,
+                max_seconds=args.max_seconds)
+            print(f"Annotiertes Video geschrieben: {args.save_video} "
+                  f"({written} Frames)")
+            return 0
+
         if args.detect:
             from theo.video import VideoPipeline
 
@@ -163,6 +173,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_an.add_argument("--save-frames", metavar="DIR",
                       help="Annotierte Keyframes (Boxen/LOS) als PNG in DIR speichern "
                            "(impliziert --detect).")
+    p_an.add_argument("--save-video", metavar="FILE",
+                      help="Annotiertes Video (Boxen je Frame) als MP4 speichern.")
     p_an.add_argument("--show-roadmap", action="store_true",
                       help="Geplante CV-Analysen anzeigen (Basisanalyse).")
     p_an.set_defaults(func=cmd_analyze)

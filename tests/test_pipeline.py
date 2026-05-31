@@ -76,3 +76,16 @@ def test_pipeline_annotate_produces_keyframes(tmp_path):
 def test_pipeline_missing_file():
     with pytest.raises(FileNotFoundError):
         VideoPipeline(detector=FakeDetector()).process("nicht_da.avi")
+
+
+def test_render_annotated_video(tmp_path):
+    from theo.video import render_annotated_video
+
+    src = tmp_path / "clip.avi"
+    if not _make_video(src, frames=24, fps=12):
+        pytest.skip("VideoWriter nicht verfügbar (kein Codec).")
+    out = tmp_path / "annot.mp4"
+    written = render_annotated_video(src, out, detector=FakeDetector(),
+                                     sample_fps=6, max_seconds=None)
+    assert written > 0
+    assert out.exists() and out.stat().st_size > 0

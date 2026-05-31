@@ -28,9 +28,15 @@ from theo.simulation import (
 
 try:
     from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-    from fastapi.responses import HTMLResponse, JSONResponse, Response
+    from fastapi.responses import (
+        FileResponse,
+        HTMLResponse,
+        JSONResponse,
+        Response,
+    )
     from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel
+    from starlette.background import BackgroundTask
 except ImportError as exc:  # pragma: no cover
     raise RuntimeError(
         "Das Web-Backend benötigt FastAPI. Installiere es mit "
@@ -202,6 +208,36 @@ def create_app() -> "FastAPI":
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
+    @app.post("/api/analyze/video")
+    def analyze_video_download(
+        file: UploadFile = File(...),
+        detector: str = Form(_DEFAULT_DETECTOR),
+    ):
+        from theo.video import render_annotated_video
+
+        suffix = Path(file.filename or "").suffix.lower()
+        if suffix not in _ALLOWED_SUFFIXES:
+            raise HTTPException(status_code=400,
+                                detail=f"Nicht unterstütztes Format: {suffix or '(keins)'}.")
+        tmp_dir = Path(tempfile.mkdtemp(prefix="theo_video_"))
+        in_path = tmp_dir / f"in{suffix}"
+        out_path = tmp_dir / "theo_annotated.mp4"
+        cleanup = BackgroundTask(shutil.rmtree, str(tmp_dir), ignore_errors=True)
+        try:
+            _save_upload_limited(file.file, in_path,
+                                 int(_MAX_UPLOAD_MB * 1024 * 1024))
+            written = render_annotated_video(
+                in_path, out_path, detector=detector,
+                max_seconds=_MAX_ANALYZE_SECONDS)
+            if written == 0 or not out_path.exists():
+                raise HTTPException(status_code=400,
+                                    detail="Keine Frames – Video nicht lesbar.")
+        except Exception:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            raise
+        return FileResponse(str(out_path), media_type="video/mp4",
+                            filename="theo_annotated.mp4", background=cleanup)
+
     return app
 
 
@@ -306,6 +342,7 @@ _INDEX_HTML = """<!DOCTYPE html>
       </label>
     </div>
     <button id="anBtn" onclick="analyze()">Analysieren</button>
+    <button id="vidBtn" style="background:#0d7a8c" onclick="downloadAnnotated()">⬇️ Annotiertes Video</button>
     <p class="muted">Es werden max. 30 s analysiert. Das Video wird nach der
     Analyse serverseitig gelöscht.</p>
     <div id="analysis"></div>
@@ -378,6 +415,27 @@ async function ask() {
       html += '<div class="src">Quellen: ' + d.sources.map(escapeHtml).join(' · ') + '</div>';
     html += '<div class="src">Backend: ' + escapeHtml(d.backend) + '</div>';
     out.innerHTML = html;
+  } catch (e) { out.innerHTML = '<p style="color:#e06">' + escapeHtml(e.message) + '</p>'; }
+  finally { btn.disabled = false; }
+}
+async function downloadAnnotated() {
+  const f = document.getElementById('file').files[0];
+  const out = document.getElementById('analysis');
+  const btn = document.getElementById('vidBtn');
+  if (!f) { out.innerHTML = '<p class="muted">Bitte ein Video auswählen.</p>'; return; }
+  btn.disabled = true; out.innerHTML = '<p class="muted">Erstelle annotiertes Video… das dauert.</p>';
+  try {
+    const fd = new FormData();
+    fd.append('file', f);
+    fd.append('detector', document.getElementById('detector').value);
+    const r = await fetch('/api/analyze/video', { method: 'POST', body: fd });
+    if (!r.ok) { const d = await r.json(); throw new Error(d.detail || 'Fehler'); }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'theo_annotated.mp4'; a.click();
+    URL.revokeObjectURL(url);
+    out.innerHTML = '<p class="muted">Annotiertes Video heruntergeladen (theo_annotated.mp4).</p>';
   } catch (e) { out.innerHTML = '<p style="color:#e06">' + escapeHtml(e.message) + '</p>'; }
   finally { btn.disabled = false; }
 }

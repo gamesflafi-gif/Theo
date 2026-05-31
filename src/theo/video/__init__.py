@@ -33,7 +33,13 @@ from theo.video.annotate import (
     encode_jpeg,
     encode_jpeg_data_url,
 )
-from theo.video.pipeline import Keyframe, PipelineResult, VideoPipeline, process_video
+from theo.video.pipeline import (
+    Keyframe,
+    PipelineResult,
+    VideoPipeline,
+    process_video,
+    render_annotated_video,
+)
 from theo.video.tracking import CentroidTracker, Track
 
 __all__ = [
@@ -50,4 +56,5 @@ __all__ = [
     "draw_detections", "encode_jpeg", "encode_jpeg_data_url",
     # Pipeline
     "VideoPipeline", "PipelineResult", "Keyframe", "process_video",
+    "render_annotated_video",
 ]
