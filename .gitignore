@@ -11,3 +11,6 @@ daten/training.log
 
 # Hinweis: daten/korpus.txt (gemeinfreier Goethe-Text) wird bewusst
 # mit eingecheckt, damit das Training ohne Internet sofort startet.
+
+# Lokaler Suchindex (wird aus den Dokumenten des Nutzers erzeugt)
+.theo_index.json

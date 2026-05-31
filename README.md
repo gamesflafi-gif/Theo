@@ -1,95 +1,114 @@
-# Theo — unser eigenes Sprachmodell von Grund auf 🧠
+# Theo 🟢 — KI, die lokal & datenschutzsicher arbeitet
 
-**Theo ist ein kleiner GPT-Transformer — dieselbe Grundarchitektur wie ChatGPT —
-den wir selbst gebaut und selbst trainiert haben.** Du gibst einen Satzanfang ein,
-und Theo schreibt weiter.
+Theo besteht aus zwei Teilen:
 
-Kein fertiges Modell, keine API: Jede Zeile dieses neuronalen Netzes ist hier
-nachvollziehbar und auf Deutsch kommentiert. Das ist der echte Kern moderner KI —
-zum Anfassen und Verstehen.
+1. **🔒 Theo Akte** *(das Produkt)* — ein **lokaler Dokumenten-Assistent**: durchsucht
+   vertrauliche Dokumente blitzschnell und findet die passenden Stellen — **komplett
+   offline, kein Byte verlässt den Rechner.** Genau dafür, wo Cloud-KI (ChatGPT &
+   Co.) aus Datenschutzgründen **verboten** ist: Kanzleien, Arztpraxen,
+   Steuerberater, Behörden.
+2. **🧠 Theo Lab** *(das Fundament)* — ein selbst gebauter Mini-GPT, an dem wir die
+   KI-Technik von Grund auf verstehen.
 
-## Wie es funktioniert (in einem Satz)
+> **Warum das ein Markt ist:** Anwälte, Ärzte und Ämter in Deutschland *dürfen*
+> ihre sensiblen Daten nicht in die Cloud geben (DSGVO). Eine KI, die **lokal**
+> läuft, ist für sie oft wichtiger als perfekte Qualität — und genau das können
+> die großen Cloud-Anbieter nicht bieten. Das ist unsere Lücke.
 
-Theo lernt nur **eine** Aufgabe: „Welches Zeichen kommt als Nächstes?" Wenn ein
-Netz das richtig gut kann, entsteht daraus die Fähigkeit, ganze Texte zu schreiben.
+---
 
-**Echtes Beispiel** von unserem Modell (0,83 Mio. Parameter, auf der CPU
-trainiert, val-loss 1.32) — gestartet mit dem Wort „Charlotte ":
+## 🔒 Theo Akte — der lokale Doku-Assistent
+
+Findet in Sekunden die richtige Stelle in hunderten Seiten Akten. Mit
+Quellenangabe. Ohne Internet.
+
+```bash
+# 1) Einen Ordner mit Dokumenten indizieren (.txt, .md, .pdf)
+python -m theo.akte.cli index /pfad/zu/meinen/dokumenten
+
+# 2) In normaler Sprache fragen
+python -m theo.akte.cli frage "Wie lang ist die Kündigungsfrist?"
+```
+
+Beispiel-Ausgabe (mit den mitgelieferten Beispiel-Dokumenten in `beispiele/akten`):
 
 ```
-Charlotte und daß dir Zeit des Gesellschaft hatten will auf
-einen dir einsten Vorhältnisse zu nehmen.
-Als wünschen sollte sich Ottilien ihre Zug, den wir sie sich die Teichen es
-still an der Begriff zu haben.
+Frage: Wie lang ist die Kündigungsfrist für den Mieter?
+============================================================
+[1] mietvertrag.txt (Abschnitt 1, Relevanz 2.7)
+    § 5 Kündigung – Die Kündigungsfrist für den Mieter beträgt drei Monate
+    zum Monatsende. Die Kündigung bedarf der Schriftform. ...
 ```
 
-Die Grammatik ist noch wackelig (klar, bei einem winzigen Modell auf der CPU) —
-aber das sind **echte, selbst gelernte deutsche Wörter**, und Theo benutzt sogar
-korrekt die Romanfiguren *Charlotte* und *Ottilie*. Weitere Beispiele:
-[`beispiele/erste_texte.md`](beispiele/erste_texte.md).
+**Technik:** lokaler BM25-Suchindex (derselbe Algorithmus wie in großen
+Suchmaschinen), mit Sonderbehandlung für deutsche zusammengesetzte Wörter
+(„Urlaub" findet auch „Erholungsurlaub"). Alles nachvollziehbar, keine Blackbox,
+keine Internetverbindung nötig.
 
-## ⚖️ Legal & sauber
+| Datei | Inhalt |
+|---|---|
+| `theo/akte/dokumente.py` | Dateien einlesen & in zitierbare Abschnitte schneiden |
+| `theo/akte/suche.py` | lokaler BM25-Suchindex |
+| `theo/akte/cli.py` | Kommandozeile (`index`, `frage`) |
 
-- **Trainingsdaten:** ausschließlich **gemeinfreier** Text — hier *Die
-  Wahlverwandtschaften* von J. W. von Goethe († 1832). In Deutschland
-  urheberrechtsfrei, keine personenbezogenen Daten → DSGVO- und
-  urheberrechtssicher.
-- Quelle: [GITenberg](https://github.com/GITenberg/Die-Wahlverwandtschaften_2403)
-  (Project-Gutenberg-Mirror auf GitHub).
+### Fahrplan zum Produkt
 
-## Schnellstart
+1. **Lokale Suche (erledigt):** findet die relevanten Stellen offline. ✅
+2. **Semantische Suche:** lokales Embedding-Modell → findet auch sinngleiche
+   Formulierungen (Synonyme), nicht nur Stichwörter.
+3. **Lokale Antworten:** ein offline-LLM (z. B. via `llama.cpp`/Ollama) formuliert
+   aus den Fundstellen eine fertige Antwort — weiterhin 100 % lokal.
+4. **Oberfläche:** einfache Desktop-/Web-App zum Reinziehen von Dokumenten.
+5. **Erstkunde:** eine Kanzlei/Praxis als Pilot — echtes Feedback, erster Umsatz.
+
+> **Ehrlich:** „Garantierte Millionen" kann niemand versprechen. Aber dieser Weg —
+> ein klarer Bedarf, ein zahlungsbereiter Kunde, Datenschutz als Trumpf — ist real.
+
+---
+
+## 🧠 Theo Lab — unser eigenes Sprachmodell von Grund auf
+
+Ein kleiner GPT-Transformer (dieselbe Grundarchitektur wie ChatGPT), den wir
+selbst gebaut und trainiert haben — als Lernfundament, voll auf Deutsch
+kommentiert. Trainiert auf **gemeinfreiem** Text (Goethe, *Die
+Wahlverwandtschaften* † 1832 → urheberrechtsfrei, keine personenbezogenen Daten).
+
+```bash
+python -m theo.cli train --max-iters 5000        # trainieren (CPU genügt)
+python -m theo.cli schreibe --start "Eduard "    # Theo schreiben lassen
+```
+
+Echtes Beispiel (Start: „Charlotte ", val-loss 1.32):
+
+```
+Charlotte und daß dir Zeit des Gesellschaft hatten will auf einen dir einsten
+Vorhältnisse zu nehmen. Als wünschen sollte sich Ottilien ihre Zug, ...
+```
+
+Noch wackelige Grammatik, aber echte, selbst gelernte deutsche Wörter inkl. der
+korrekten Romanfiguren. Mehr in [`beispiele/erste_texte.md`](beispiele/erste_texte.md).
+
+| Datei | Inhalt |
+|---|---|
+| `theo/model.py` | Transformer-Architektur (Self-Attention, Blöcke) |
+| `theo/data.py` / `theo/corpus.py` | Daten vorbereiten & gemeinfreien Text laden |
+| `theo/train.py` / `theo/generate.py` | trainieren & Text erzeugen |
+
+---
+
+## Installation & Tests
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# 1) Theo trainieren (CPU genügt; ~15-20 Min für einen ersten Eindruck)
-python -m theo.cli train --max-iters 5000
-
-# 2) Theo schreiben lassen
-python -m theo.cli schreibe --start "Eduard " --laenge 400
-```
-
-Beim ersten Lauf lädt Theo den gemeinfreien Text automatisch herunter (oder nutzt
-die mitgelieferte Datei `daten/korpus.txt`).
-
-### Stellschrauben
-
-| Schalter | Bedeutung |
-|---|---|
-| `--max-iters` | Anzahl der Lernschritte (mehr = besser, aber langsamer) |
-| `--n-layer` / `--n-head` / `--n-embd` | Größe des Modells |
-| `--temperatur` | beim Schreiben: <1 = braver, >1 = kreativer |
-| `--top-k` | beim Schreiben: nur aus den k besten Zeichen wählen |
-
-## Aufbau des Projekts
-
-| Datei | Inhalt |
-|---|---|
-| `theo/model.py` | die Transformer-Architektur (Embeddings, Self-Attention, Blöcke) |
-| `theo/data.py` | Text ⇄ Zahlen, Trainings-Häppchen |
-| `theo/corpus.py` | gemeinfreien Text laden & säubern |
-| `theo/train.py` | die Trainingsschleife |
-| `theo/generate.py` | mit dem fertigen Modell Text schreiben |
-| `theo/cli.py` | Kommandozeile |
-
-## Tests
-
-```bash
 python -m pytest -q
 ```
 
-## Fahrplan — wohin Theo wächst
+## ⚖️ Legal & sauber
 
-1. **Schritt 1 (erledigt):** echter, lauffähiger GPT, der deutschen Text lernt. ✅
-2. **Schritt 2:** mehr & vielfältigere gemeinfreie Texte → reichere Sprache.
-3. **Schritt 3:** von Zeichen- auf Wort-/Subwort-Ebene (BPE) für besseres Deutsch.
-4. **Schritt 4:** größeres Modell + (geliehene) GPU → spürbarer Qualitätssprung.
-5. **Schritt 5:** auf eine echte, nützliche Aufgabe spezialisieren.
-
-> **Ehrlich:** Ohne große Rechenpower bleibt Theo klein und schlägt ChatGPT nicht.
-> Aber er ist **echt**, er **läuft**, und wir **verstehen jedes Teil**. Das ist das
-> Fundament, auf dem sich Großes bauen lässt — Schritt für Schritt.
+- Nur **gemeinfreie** bzw. **eigene/lokale** Daten — keine personenbezogenen
+  Daten ohne Grundlage, keine urheberrechtlich geschützten Texte.
+- Theo Akte verarbeitet alles **lokal** → DSGVO-freundlich „by design".
 
 ## Lizenz
 
