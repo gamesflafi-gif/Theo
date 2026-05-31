@@ -18,8 +18,8 @@ Das Projekt wird **stufenweise** aufgebaut und ist nach jeder Stufe lauffähig.
 | 2 | Computer Vision: Spieler-/Ball-Erkennung (HOG/YOLO), Tracking, Formations- & Spielzug-Schätzung | ✅ fertig |
 | 3 | Web-/Upload-Oberfläche (Fragen stellen + Videos hochladen) | ✅ fertig |
 | 4 | **Installierbare App (PWA)** – auf Handy & Desktop installierbar, offline-fähige Shell | ✅ fertig |
-| 5 | **Spielzug-Simulator** – Offense-Play vs. Defense-Play, animierter Verlauf + Ausgangsverteilung | ✅ fertig |
-| 6 | Lernende Komponente (trainiertes Modell), Live-Daten | 🔜 geplant |
+| 5 | **Spielzug-Simulator** – Offense vs. Defense, Animation, Ausgangsverteilung, Matchup-Berater, Playbook | ✅ fertig |
+| 6 | Lernende Komponente (trainiertes Modell für Video-Spielzüge), Live-Daten | 🔜 geplant |
 
 ## Installation
 
@@ -63,7 +63,11 @@ theo analyze spiel.mp4
 # Video analysieren – volle CV-Pipeline (Spieler, Tracking, Formation, Spielzug)
 theo analyze spiel.mp4 --detect --detector hog     # oder: --detector yolo
 
-# Weboberfläche starten (Fragen stellen + Videos hochladen)
+# Annotierte Keyframes / ganzes Video speichern
+theo analyze spiel.mp4 --save-frames ./frames
+theo analyze spiel.mp4 --save-video theo_annotated.mp4 --detector yolo
+
+# Weboberfläche starten (Fragen + Video + Spielzug-Simulator)
 theo serve                      # http://127.0.0.1:8000
 ```
 
@@ -97,17 +101,22 @@ weiterhin den laufenden Server.
 Im Bereich **„Spielzug-Simulator"** der Web-App lässt sich ein Offense-Play gegen
 ein Defense-Play antreten:
 - Offense- und Defense-Spielzug aus der Bibliothek wählen (z. B. *Four Verticals*
-  vs. *Cover 2*) oder über „Routen anpassen" einen **eigenen Spielzug** bauen.
+  vs. *Cover 2*) oder über „Routen anpassen" einen **eigenen Spielzug** bauen
+  und im **Playbook** (Browser) speichern.
 - **▶ Simulieren** zeigt den Verlauf als Animation auf dem Feld (Offense blau,
   Defense rot, Ball) samt Ausgang (komplett/inkomplett/Sack/INT/Lauf, Yards).
-- **📊 100× simulieren** rechnet eine **Ausgangsverteilung** (Ø Yards, beste/
-  schlechteste, Quoten je Ausgang).
+- **📊 100×** rechnet eine **Ausgangsverteilung** (Ø Yards, beste/schlechteste,
+  Quoten je Ausgang).
+- **🧠 Beste Defense / Beste Offense** (Matchup-Berater) simuliert den Play gegen
+  die ganze Bibliothek und rankt die besten Gegenzüge.
 
 Das Modell ist bewusst vereinfacht (Routen, Mann-/Zone-Deckung, Pass-Rush,
 Separation am Catch), bildet Football-Tendenzen aber plausibel ab – z. B. schlägt
-*Smash* eine *Cover 2*, während ein *Blitz* tiefe Pässe zu Sacks zwingt.
+*Four Verticals* die Naht von *Cover 2*, *Cover 3/4* verteidigen tiefe Pässe, und
+ein *Blitz* zwingt tiefe Pässe zu Sacks.
 
-API: `GET /api/plays`, `POST /api/simulate`, `POST /api/simulate/batch`.
+API: `GET /api/plays`, `POST /api/simulate`, `POST /api/simulate/batch`,
+`POST /api/advisor`.
 
 Ohne `ANTHROPIC_API_KEY` antwortet Theo **extraktiv** direkt aus der Wissensbasis.
 Mit Key und installiertem `anthropic`-Paket formuliert Claude die Antwort als RAG
@@ -144,6 +153,7 @@ src/theo/
     model.py        Datenmodell (Frames, Ergebnis, Verteilung)
     plays.py        Routen, Formationen, Spielzug-Bibliothek
     engine.py       Simulations-Engine + Monte-Carlo
+    advisor.py      Matchup-Berater (rankt Spielzüge)
   web/
     app.py          FastAPI-Backend + Single-Page-Oberfläche (inkl. Simulator)
   cli.py            Kommandozeile (ask/chat/analyze/topics/serve)
